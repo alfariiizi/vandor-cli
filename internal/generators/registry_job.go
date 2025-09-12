@@ -12,7 +12,7 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/vandordev/vandor/internal/utils"
+	"github.com/alfariiizi/vandor-cli/internal/utils"
 )
 
 type JobInfo struct {

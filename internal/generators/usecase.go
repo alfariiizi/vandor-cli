@@ -8,11 +8,11 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/vandordev/vandor/internal/utils"
+	"github.com/alfariiizi/vandor-cli/internal/utils"
 )
 
 type UsecaseData struct {
-	ModuleName string // e.g., "github.com/vandordev/vandor"
+	ModuleName string // e.g., "github.com/alfariiizi/vandor-cli"
 	Name       string // e.g., "CreateUser"
 	Receiver   string // e.g., "createUser"
 }

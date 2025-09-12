@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/vandordev/vandor/internal/theme"
+	"github.com/alfariiizi/vandor-cli/internal/theme"
 )
 
 var themeCmd = &cobra.Command{

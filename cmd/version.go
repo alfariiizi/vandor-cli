@@ -69,7 +69,7 @@ func showDetailedVersion() {
 	fmt.Println("--------------------")
 	fmt.Println("Check for updates: vandor upgrade check")
 	fmt.Println("Upgrade to latest: vandor upgrade")
-	fmt.Println("GitHub Releases:   https://github.com/vandordev/vandor-cli/releases")
+	fmt.Println("GitHub Releases:   https://github.com/alfariiizi/vandor-cli-cli/releases")
 }
 
 func init() {

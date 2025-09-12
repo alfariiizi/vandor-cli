@@ -8,11 +8,11 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/vandordev/vandor/internal/utils"
+	"github.com/alfariiizi/vandor-cli/internal/utils"
 )
 
 type JobData struct {
-	ModuleName string // e.g., "github.com/vandordev/vandor"
+	ModuleName string // e.g., "github.com/alfariiizi/vandor-cli"
 	StructName string // e.g., "SendEmail"
 	VarName    string // e.g., "sendEmail"
 	JobKey     string // e.g., "job:send_email"

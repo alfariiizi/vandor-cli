@@ -1,4 +1,4 @@
-module github.com/vandordev/vandor
+module github.com/alfariiizi/vandor-cli
 
 go 1.24
 

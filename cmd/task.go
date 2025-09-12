@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/vandordev/vandor/internal/taskfile"
+	"github.com/alfariiizi/vandor-cli/internal/taskfile"
 )
 
 var taskCmd = &cobra.Command{

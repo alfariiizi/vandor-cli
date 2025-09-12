@@ -8,11 +8,11 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/vandordev/vandor/internal/utils"
+	"github.com/alfariiizi/vandor-cli/internal/utils"
 )
 
 type HandlerData struct {
-	ModuleName string // e.g., "github.com/vandordev/vandor"
+	ModuleName string // e.g., "github.com/alfariiizi/vandor-cli"
 	Name       string // e.g., "GetUser"
 	Group      string // e.g., "user"
 	GroupTitle string // e.g., "User"

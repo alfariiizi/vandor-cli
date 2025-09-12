@@ -8,11 +8,11 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/vandordev/vandor/internal/utils"
+	"github.com/alfariiizi/vandor-cli/internal/utils"
 )
 
 type ServiceData struct {
-	ModuleName  string // e.g., "github.com/vandordev/vandor"
+	ModuleName  string // e.g., "github.com/alfariiizi/vandor-cli"
 	Name        string // e.g., "CreateUser"
 	ServiceName string // e.g., "create_user"
 	Receiver    string // e.g., "createUser"

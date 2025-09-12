@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbletea"
 	
-	"github.com/vandordev/vandor/internal/theme"
+	"github.com/alfariiizi/vandor-cli/internal/theme"
 )
 
 func getTaskfileStyles() *theme.Styles {

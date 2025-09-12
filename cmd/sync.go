@@ -6,7 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/spf13/cobra"
-	"github.com/vandordev/vandor/internal/generators"
+	"github.com/alfariiizi/vandor-cli/internal/generators"
 )
 
 var syncCmd = &cobra.Command{

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/vandordev/vandor/internal/tui"
+	"github.com/alfariiizi/vandor-cli/internal/tui"
 	"github.com/spf13/cobra"
 )
 

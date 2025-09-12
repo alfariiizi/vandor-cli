@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/vandordev/vandor/cmd"
+	"github.com/alfariiizi/vandor-cli/cmd"
 )
 
 func main() {

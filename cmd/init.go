@@ -54,9 +54,9 @@ func init() {
 // getTemplateRepositories returns the default GitHub template repositories
 func getTemplateRepositories() map[string]string {
 	return map[string]string{
-		"full-backend": "https://github.com/vandordev/vandor-template-full-backend.git",
-		"eda":          "https://github.com/vandordev/vandor-template-eda.git",
-		"minimal":      "https://github.com/vandordev/vandor-template-minimal.git",
+		"full-backend": "https://github.com/alfariiizi/vandor-cli-template-full-backend.git",
+		"eda":          "https://github.com/alfariiizi/vandor-cli-template-eda.git",
+		"minimal":      "https://github.com/alfariiizi/vandor-cli-template-minimal.git",
 	}
 }
 

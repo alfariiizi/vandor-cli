@@ -8,11 +8,11 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/vandordev/vandor/internal/utils"
+	"github.com/alfariiizi/vandor-cli/internal/utils"
 )
 
 type SchedulerData struct {
-	ModuleName  string // e.g., "github.com/vandordev/vandor"
+	ModuleName  string // e.g., "github.com/alfariiizi/vandor-cli"
 	PascalName  string // e.g., "BackupData"
 	FunctionName string // e.g., "RegisterBackupDataJob"
 }

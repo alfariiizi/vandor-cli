@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vandordev/vandor/internal/vpkg"
+	"github.com/alfariiizi/vandor-cli/internal/vpkg"
 	"github.com/spf13/cobra"
 )
 
