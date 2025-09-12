@@ -32,7 +32,6 @@ linters:
     - nolintlint
     - gocritic
     - revive
-    - shadow
 
 issues:
   exclude-rules:
