@@ -43,7 +43,7 @@ vandor.exe
 /vandor.exe
 
 # Generated installation scripts
-install-vandor.sh
+# install-vandor.sh
 
 # Test directories and files
 /test/
