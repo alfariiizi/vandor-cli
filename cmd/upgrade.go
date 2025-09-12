@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -63,9 +64,22 @@ var upgradeCheckCmd = &cobra.Command{
 	},
 }
 
+var upgradeSourceCmd = &cobra.Command{
+	Use:   "source",
+	Short: "Upgrade by building from source code",
+	Long: `Build and install the latest version from GitHub source code.
+This is useful when no releases are available yet.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := performSourceUpgrade(); err != nil {
+			er(fmt.Sprintf("Source upgrade failed: %v", err))
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(upgradeCmd)
 	upgradeCmd.AddCommand(upgradeCheckCmd)
+	upgradeCmd.AddCommand(upgradeSourceCmd)
 }
 
 func performUpgrade() error {
@@ -73,6 +87,17 @@ func performUpgrade() error {
 	
 	release, hasUpdate, err := checkForUpdates(false)
 	if err != nil {
+		// If releases are not available, offer source upgrade as fallback
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "releases") {
+			fmt.Println("⚠️  No GitHub releases found.")
+			fmt.Println("💡 Would you like to upgrade from source code instead? (y/N)")
+			var response string
+			fmt.Scanln(&response)
+			if strings.ToLower(response) == "y" || strings.ToLower(response) == "yes" {
+				return performSourceUpgrade()
+			}
+			return fmt.Errorf("upgrade cancelled - no releases available")
+		}
 		return fmt.Errorf("failed to check for updates: %v", err)
 	}
 
@@ -372,4 +397,83 @@ func formatDate(dateStr string) string {
 		return dateStr
 	}
 	return t.Format("January 2, 2006")
+}
+
+func performSourceUpgrade() error {
+	fmt.Println("🔧 Building from source code...")
+	fmt.Println("📋 This will:")
+	fmt.Println("   1. Clone the latest code from GitHub")
+	fmt.Println("   2. Build the binary using Go")
+	fmt.Println("   3. Replace your current installation")
+	fmt.Println()
+
+	// Check prerequisites
+	if !commandExists("git") {
+		return fmt.Errorf("git is required for source installation")
+	}
+	if !commandExists("go") {
+		return fmt.Errorf("Go is required for source installation (install from https://golang.org/)")
+	}
+
+	// Create temporary directory
+	tempDir, err := os.MkdirTemp("", "vandor-source-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	fmt.Printf("📁 Working directory: %s\n", tempDir)
+
+	// Clone repository
+	fmt.Println("📥 Cloning repository...")
+	if err := executeCommand("git", "clone", "https://github.com/alfariiizi/vandor-cli.git", tempDir+"/vandor-cli"); err != nil {
+		return fmt.Errorf("failed to clone repository: %v", err)
+	}
+
+	// Change to project directory
+	projectDir := filepath.Join(tempDir, "vandor-cli")
+
+	// Build binary
+	fmt.Println("🔨 Building binary...")
+	buildCmd := []string{"go", "build", "-o", "vandor", "main.go"}
+	if err := executeCommandInDir(projectDir, buildCmd[0], buildCmd[1:]...); err != nil {
+		return fmt.Errorf("failed to build: %v", err)
+	}
+
+	// Test the binary
+	builtBinary := filepath.Join(projectDir, "vandor")
+	fmt.Println("🧪 Testing built binary...")
+	if err := executeCommand(builtBinary, "version"); err != nil {
+		return fmt.Errorf("built binary failed to run: %v", err)
+	}
+
+	// Replace current binary
+	fmt.Println("📥 Installing new binary...")
+	if err := replaceCurrentBinary(builtBinary); err != nil {
+		return fmt.Errorf("failed to replace binary: %v", err)
+	}
+
+	fmt.Println("✅ Successfully upgraded Vandor CLI from source!")
+	fmt.Println("🎉 Run 'vandor version' to verify the installation.")
+
+	return nil
+}
+
+func commandExists(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+	return err == nil
+}
+
+func executeCommand(name string, args ...string) error {
+	return executeCommandInDir("", name, args...)
+}
+
+func executeCommandInDir(dir, name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }

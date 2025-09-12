@@ -90,7 +90,8 @@ vandor theme set auto     # Auto-detect (default)
 
 ```bash
 vandor upgrade check      # Check for updates
-vandor upgrade           # Upgrade to latest version
+vandor upgrade           # Upgrade to latest version (with source fallback)
+vandor upgrade source    # Build from source (when no releases available)
 ```
 
 ## Commands
@@ -159,8 +160,9 @@ vandor upgrade           # Upgrade to latest version
 
 ### Update Management
 
-- `vandor upgrade` - Upgrade to the latest version
-- `vandor upgrade check` - Check if newer version is available
+- `vandor upgrade` - Upgrade to the latest version (with fallback to source)
+- `vandor upgrade check` - Check if newer version is available  
+- `vandor upgrade source` - Build and install from source code
 - `vandor install script` - Generate installation script (for developers)
 - `vandor install instructions` - Show installation instructions
 - `vandor uninstall` - Uninstall Vandor CLI from system
