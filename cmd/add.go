@@ -33,4 +33,3 @@ func runScript(script string, args ...string) error {
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
-

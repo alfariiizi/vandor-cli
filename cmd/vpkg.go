@@ -163,4 +163,3 @@ func init() {
 	vpkgCmd.AddCommand(vpkgUpdateCmd)
 	vpkgCmd.AddCommand(vpkgSearchCmd)
 }
-

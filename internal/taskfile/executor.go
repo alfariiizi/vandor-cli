@@ -41,7 +41,7 @@ type TaskExecutor struct {
 // NewTaskExecutor creates a new task executor
 func NewTaskExecutor(taskfile *TaskfileSchema, variables map[string]string) *TaskExecutor {
 	workDir, _ := os.Getwd()
-	
+
 	return &TaskExecutor{
 		taskfile:  taskfile,
 		variables: variables,
@@ -52,11 +52,11 @@ func NewTaskExecutor(taskfile *TaskfileSchema, variables map[string]string) *Tas
 // ExecuteTask runs a task with the given variables
 func (e *TaskExecutor) ExecuteTask(taskName string, task *Task) error {
 	fmt.Printf("\n%s\n", commandStyle.Render(fmt.Sprintf("🚀 Running task: %s", taskName)))
-	
+
 	if task.Desc != "" {
 		fmt.Printf("%s\n", outputStyle.Render(fmt.Sprintf("Description: %s", task.Desc)))
 	}
-	
+
 	// Get task commands
 	commands, err := task.GetTaskCommands()
 	if err != nil {
@@ -136,7 +136,7 @@ func (e *TaskExecutor) checkPreconditions(task *Task) error {
 			if msg == "" {
 				msg = fmt.Sprintf("precondition failed: %s", expandedCmd)
 			}
-			return fmt.Errorf(msg)
+			return fmt.Errorf("%s", msg)
 		}
 	}
 	return nil
@@ -185,7 +185,7 @@ func (e *TaskExecutor) executeSubTask(taskName string, vars map[string]interface
 	for k, v := range e.variables {
 		subVars[k] = v
 	}
-	
+
 	// Override with subtask vars
 	for k, v := range vars {
 		if str, ok := v.(string); ok {

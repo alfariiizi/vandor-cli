@@ -15,7 +15,7 @@ import (
 
 func GenerateUsecaseRegistry() error {
 	usecaseDir := "internal/core/usecase"
-	
+
 	// Discover usecases
 	usecases, err := discoverUsecases(usecaseDir)
 	if err != nil {
@@ -107,7 +107,7 @@ func generateUsecaseRegistryFile(usecases []string, outputPath string) error {
 	// Generate constructor parameters
 	constructorParams := []jen.Code{}
 	constructorDict := jen.Dict{}
-	
+
 	for _, usecase := range usecases {
 		param := strings.ToLower(usecase[:1]) + usecase[1:]
 		constructorParams = append(constructorParams, jen.Id(param).Id(usecase))

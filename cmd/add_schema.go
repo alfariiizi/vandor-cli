@@ -14,11 +14,11 @@ var addSchemaCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		fmt.Printf("Creating new schema: %s\n", name)
-		
+
 		if err := runScript("./internal/scripts/ent-tools.sh", "new", name); err != nil {
 			er(fmt.Sprintf("Failed to create schema: %v", err))
 		}
-		
+
 		fmt.Printf("✅ Schema '%s' created successfully!\n", name)
 	},
 }

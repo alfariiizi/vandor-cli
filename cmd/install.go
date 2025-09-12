@@ -253,7 +253,7 @@ func showInstallationInstructions() {
 	fmt.Printf("2. Download the binary for your platform (%s/%s)\n", runtime.GOOS, runtime.GOARCH)
 	fmt.Println("3. Extract and move to PATH:")
 	fmt.Println()
-	
+
 	if runtime.GOOS == "windows" {
 		fmt.Println("   # Windows (PowerShell)")
 		fmt.Println("   Expand-Archive vandor-windows-amd64.zip")
@@ -353,7 +353,7 @@ func performUninstall() error {
 	// Show what will be removed
 	fmt.Println("🔍 The following will be removed:")
 	fmt.Printf("   • Binary: %s\n", exe)
-	
+
 	// Check for backup files
 	backupPath := exe + ".backup"
 	if _, err := os.Stat(backupPath); err == nil {
@@ -365,10 +365,13 @@ func performUninstall() error {
 	// Confirmation prompt
 	fmt.Print("❓ Are you sure you want to uninstall Vandor CLI? [y/N]: ")
 	var response string
-	fmt.Scanln(&response)
-	
+	if _, err := fmt.Scanln(&response); err != nil {
+		// Handle scan error gracefully
+		response = "n"
+	}
+
 	if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
-		fmt.Println("❌ Uninstall cancelled.")
+		fmt.Println("❌ Uninstall canceled.")
 		return nil
 	}
 
@@ -395,7 +398,9 @@ func performUninstall() error {
 
 		// Remove backup if it exists
 		if _, err := os.Stat(backupPath); err == nil {
-			os.Remove(backupPath)
+			if rmErr := os.Remove(backupPath); rmErr != nil {
+				fmt.Printf("Warning: failed to remove backup file: %v\n", rmErr)
+			}
 		}
 	}
 

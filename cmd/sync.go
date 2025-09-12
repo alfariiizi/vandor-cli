@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/spf13/cobra"
 	"github.com/alfariiizi/vandor-cli/internal/generators"
+	"github.com/spf13/cobra"
 )
 
 var syncCmd = &cobra.Command{
@@ -21,7 +21,7 @@ var syncAllCmd = &cobra.Command{
 	Long:  `Sync all code components including domains, usecases, services, handlers, jobs, schedulers, seeds, and database models.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Syncing all code...")
-		
+
 		// Use Jennifer-based generators
 		generators := []func() error{
 			generators.GenerateDomainRegistry,
@@ -30,7 +30,7 @@ var syncAllCmd = &cobra.Command{
 			generators.GenerateHandlerRegistry,
 			generators.GenerateJobRegistry,
 		}
-		
+
 		// Additional commands that still use old approach
 		commands := [][]string{
 			{"go", "run", "./internal/cmd/scheduler/cmd-regenerate-scheduler/main.go"},
@@ -38,21 +38,21 @@ var syncAllCmd = &cobra.Command{
 			{"go", "run", "./internal/cmd/entgo/main.go"},
 			{"goimports", "-w", "."},
 		}
-		
+
 		// Run Jennifer-based generators first
 		for _, gen := range generators {
 			if err := gen(); err != nil {
 				er(fmt.Sprintf("Failed to run generator: %v", err))
 			}
 		}
-		
+
 		// Run remaining commands
 		for _, cmdArgs := range commands {
 			if err := runCommand(cmdArgs[0], cmdArgs[1:]...); err != nil {
 				er(fmt.Sprintf("Failed to run %s: %v", cmdArgs[0], err))
 			}
 		}
-		
+
 		fmt.Println("✅ All code synced successfully!")
 	},
 }
@@ -63,21 +63,21 @@ var syncCoreCmd = &cobra.Command{
 	Long:  `Sync core code including usecases, services, and domains.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Syncing core code...")
-		
+
 		// Use Jennifer-based generators
 		generators := []func() error{
 			generators.GenerateUsecaseRegistry,
 			generators.GenerateServiceRegistry,
 			generators.GenerateDomainRegistry,
 		}
-		
+
 		// Run Jennifer-based generators
 		for _, gen := range generators {
 			if err := gen(); err != nil {
 				er(fmt.Sprintf("Failed to run generator: %v", err))
 			}
 		}
-		
+
 		fmt.Println("✅ Core code synced successfully!")
 	},
 }
@@ -184,17 +184,17 @@ var syncDbModelCmd = &cobra.Command{
 	Short: "Sync DB Model code",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Syncing DB Model...")
-		
+
 		// Generate ent code
 		if err := runGoCommand("run", "./internal/cmd/entgo/main.go"); err != nil {
 			er(fmt.Sprintf("Failed to generate DB model: %v", err))
 		}
-		
+
 		// Run goimports on the generated code
 		if err := runCommand("goimports", "-w", "./internal/infrastructure/db/rest/."); err != nil {
 			er(fmt.Sprintf("Failed to run goimports: %v", err))
 		}
-		
+
 		fmt.Println("✅ DB Model synced successfully!")
 	},
 }
@@ -208,7 +208,7 @@ func runCommand(name string, args ...string) error {
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
-	
+
 	// Add subcommands to sync
 	syncCmd.AddCommand(syncAllCmd)
 	syncCmd.AddCommand(syncCoreCmd)

@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/alfariiizi/vandor-cli/internal/theme"
+	"github.com/spf13/cobra"
 )
 
 var themeCmd = &cobra.Command{
@@ -41,7 +41,7 @@ var themeSetCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		themeName := args[0]
-		
+
 		switch themeName {
 		case "mocha":
 			theme.SetCatppuccinMochaTheme()
@@ -65,7 +65,7 @@ var themeSetCmd = &cobra.Command{
 			fmt.Printf("❌ Unknown theme: %s\n", themeName)
 			fmt.Println("Use 'vandor theme list' to see available themes.")
 		}
-		
+
 		fmt.Println("Run 'vandor tui' to see the new theme in action!")
 	},
 }
@@ -78,7 +78,7 @@ var themeInfoCmd = &cobra.Command{
 		fmt.Println("🎨 Vandor CLI Theme System")
 		fmt.Println()
 		fmt.Println("Current theme: Auto-detected Catppuccin")
-		fmt.Println("- Dark terminals: Catppuccin Mocha") 
+		fmt.Println("- Dark terminals: Catppuccin Mocha")
 		fmt.Println("- Light terminals: Catppuccin Latte")
 		fmt.Println()
 		fmt.Println("The theme system automatically adapts to your terminal's appearance.")

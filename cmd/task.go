@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/alfariiizi/vandor-cli/internal/taskfile"
+	"github.com/spf13/cobra"
 )
 
 var taskCmd = &cobra.Command{
@@ -67,7 +67,7 @@ If a task requires variables, you'll be prompted to enter them interactively.`,
 
 		// Get required variables for the task
 		requiredVars := selectedTask.GetTaskVars()
-		
+
 		var variables map[string]string
 		if len(requiredVars) > 0 {
 			fmt.Printf("\n📝 Task '%s' requires variables\n", taskName)
@@ -262,7 +262,7 @@ var taskInfoCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(taskCmd)
-	
+
 	// Add subcommands
 	taskCmd.AddCommand(taskListCmd)
 	taskCmd.AddCommand(taskInfoCmd)

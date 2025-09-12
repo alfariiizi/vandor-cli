@@ -88,12 +88,12 @@ func generateJobFile(data JobData) *jen.File {
 
 	// Generate HTTP input struct
 	f.Comment("HTTP input for job enqueue endpoint")
-	f.Type().Id(data.StructName + "HTTPInput").Struct(
+	f.Type().Id(data.StructName+"HTTPInput").Struct(
 		jen.Id("JobSecret").String().Tag(map[string]string{
 			"header":   "X-Job-Secret",
 			"required": "true",
 		}),
-		jen.Id("Body").Id(data.StructName + "Payload").Tag(map[string]string{
+		jen.Id("Body").Id(data.StructName+"Payload").Tag(map[string]string{
 			"json":        "body",
 			"contentType": "application/json",
 		}),
@@ -110,7 +110,7 @@ func generateJobFile(data JobData) *jen.File {
 	)
 
 	// Generate constructor
-	f.Func().Id("New" + data.StructName).Params(
+	f.Func().Id("New"+data.StructName).Params(
 		jen.Id("client").Op("*").Qual("db", "Client"),
 		jen.Id("domain").Op("*").Qual("domain_entries", "Domain"),
 		jen.Id("validator").Qual("validator", "Validator"),
@@ -135,7 +135,7 @@ func generateJobFile(data JobData) *jen.File {
 	f.Comment("Enqueue method will be called by clients to enqueue a new job")
 	f.Func().Params(jen.Id("j").Op("*").Id(data.VarName)).Id("Enqueue").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("payload").Id(data.StructName + "Payload"),
+		jen.Id("payload").Id(data.StructName+"Payload"),
 	).Params(jen.Op("*").Qual("asynq", "TaskInfo"), jen.Error()).Block(
 		jen.If(jen.Id("err").Op(":=").Id("j").Dot("validator").Dot("Validate").Call(jen.Id("payload")), jen.Id("err").Op("!=").Nil()).Block(
 			jen.Return(jen.Nil(), jen.Id("err")),
@@ -162,7 +162,7 @@ func generateJobFile(data JobData) *jen.File {
 			}),
 			jen.Func().Params(
 				jen.Id("ctx").Qual("context", "Context"),
-				jen.Id("input").Op("*").Id(data.StructName + "HTTPInput"),
+				jen.Id("input").Op("*").Id(data.StructName+"HTTPInput"),
 			).Params(jen.Op("*").Qual("model", "JobHTTPHandlerResponse"), jen.Error()).Block(
 				jen.List(jen.Id("taskInfo"), jen.Id("err")).Op(":=").Id("j").Dot("Enqueue").Call(jen.Id("ctx"), jen.Id("input").Dot("Body")),
 				jen.If(jen.Id("err").Op("!=").Nil()).Block(
@@ -186,7 +186,7 @@ func generateJobFile(data JobData) *jen.File {
 	f.Comment("Handle method processes the job when it is executed by the worker (server worker)")
 	f.Func().Params(jen.Id("j").Op("*").Id(data.VarName)).Id("Handle").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("payload").Id(data.StructName + "Payload"),
+		jen.Id("payload").Id(data.StructName+"Payload"),
 	).Error().Block(
 		jen.Comment("TODO: implement job logic"),
 		jen.Qual("log", "Println").Call(jen.Lit("Handling "+data.StructName+" job"), jen.Lit("payload"), jen.Id("payload")),

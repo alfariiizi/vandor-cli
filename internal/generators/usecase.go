@@ -79,8 +79,8 @@ func generateUsecaseFile(data UsecaseData) *jen.File {
 
 	// Generate usecase type alias
 	f.Type().Id(data.Name).Qual("model", "Usecase").Types(
-		jen.Id(data.Name + "Input"),
-		jen.Id(data.Name + "Output"),
+		jen.Id(data.Name+"Input"),
+		jen.Id(data.Name+"Output"),
 	)
 
 	// Generate implementation struct
@@ -92,7 +92,7 @@ func generateUsecaseFile(data UsecaseData) *jen.File {
 	)
 
 	// Generate constructor
-	f.Func().Id("New" + data.Name).Params(
+	f.Func().Id("New"+data.Name).Params(
 		jen.Id("client").Op("*").Qual("db", "Client"),
 		jen.Id("domain").Op("*").Qual("domain_entries", "Domain"),
 		jen.Id("validator").Qual("validator", "Validator"),
@@ -116,8 +116,8 @@ func generateUsecaseFile(data UsecaseData) *jen.File {
 	// Generate Execute method
 	f.Func().Params(jen.Id("uc").Op("*").Id(data.Receiver)).Id("Execute").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("input").Id(data.Name + "Input"),
-	).Params(jen.Op("*").Id(data.Name + "Output"), jen.Error()).Block(
+		jen.Id("input").Id(data.Name+"Input"),
+	).Params(jen.Op("*").Id(data.Name+"Output"), jen.Error()).Block(
 		jen.Id("log").Op(":=").Qual("logger", "Get").Call(),
 		jen.Line(),
 		jen.If(jen.Id("err").Op(":=").Id("uc").Dot("Validate").Call(jen.Id("input")), jen.Id("err").Op("!=").Nil()).Block(
@@ -129,7 +129,7 @@ func generateUsecaseFile(data UsecaseData) *jen.File {
 			jen.Id("log").Dot("Error").Call().
 				Dot("Str").Call(jen.Lit("usecase"), jen.Lit(data.Name)).
 				Dot("Str").Call(jen.Lit("error"), jen.Id("err").Dot("Error").Call()).
-				Dot("Msg").Call(jen.Lit("Failed to process " + data.Name)),
+				Dot("Msg").Call(jen.Lit("Failed to process "+data.Name)),
 			jen.Return(jen.Nil(), jen.Id("err")),
 		),
 		jen.Line(),
@@ -143,7 +143,7 @@ func generateUsecaseFile(data UsecaseData) *jen.File {
 	// Generate Observer method
 	f.Func().Params(jen.Id("uc").Op("*").Id(data.Receiver)).Id("Observer").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("input").Id(data.Name + "Input"),
+		jen.Id("input").Id(data.Name+"Input"),
 	).Error().Block(
 		jen.Comment("TODO: Implement observer logic"),
 		jen.Comment("This is optional. You can leave this blank if not needed."),
@@ -154,8 +154,8 @@ func generateUsecaseFile(data UsecaseData) *jen.File {
 	// Generate SendEvent method
 	f.Func().Params(jen.Id("uc").Op("*").Id(data.Receiver)).Id("SendEvent").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("input").Id(data.Name + "Input"),
-		jen.Id("output").Id(data.Name + "Output"),
+		jen.Id("input").Id(data.Name+"Input"),
+		jen.Id("output").Id(data.Name+"Output"),
 	).Error().Block(
 		jen.Comment("TODO: Implement event sending logic"),
 		jen.Comment("This is optional. You can leave this blank if not needed."),
@@ -166,11 +166,11 @@ func generateUsecaseFile(data UsecaseData) *jen.File {
 	// Generate Process method
 	f.Func().Params(jen.Id("uc").Op("*").Id(data.Receiver)).Id("Process").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("input").Id(data.Name + "Input"),
-	).Params(jen.Op("*").Id(data.Name + "Output"), jen.Error()).Block(
+		jen.Id("input").Id(data.Name+"Input"),
+	).Params(jen.Op("*").Id(data.Name+"Output"), jen.Error()).Block(
 		jen.Comment("TODO: Implement logic"),
 		jen.Line(),
-		jen.Return(jen.Op("&").Id(data.Name + "Output").Values(), jen.Nil()),
+		jen.Return(jen.Op("&").Id(data.Name+"Output").Values(), jen.Nil()),
 	)
 
 	return f

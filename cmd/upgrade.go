@@ -27,12 +27,12 @@ func getCurrentVersion() string {
 }
 
 type GitHubRelease struct {
-	TagName    string `json:"tag_name"`
-	Name       string `json:"name"`
-	Body       string `json:"body"`
-	Assets     []GitHubAsset `json:"assets"`
-	CreatedAt  string `json:"created_at"`
-	PublishedAt string `json:"published_at"`
+	TagName     string        `json:"tag_name"`
+	Name        string        `json:"name"`
+	Body        string        `json:"body"`
+	Assets      []GitHubAsset `json:"assets"`
+	CreatedAt   string        `json:"created_at"`
+	PublishedAt string        `json:"published_at"`
 }
 
 type GitHubAsset struct {
@@ -88,7 +88,7 @@ func init() {
 
 func performUpgrade() error {
 	fmt.Println("🔍 Checking for the latest version...")
-	
+
 	release, hasUpdate, err := checkForUpdates(false)
 	if err != nil {
 		// If releases are not available, offer source upgrade as fallback
@@ -96,11 +96,14 @@ func performUpgrade() error {
 			fmt.Println("⚠️  No GitHub releases found.")
 			fmt.Println("💡 Would you like to upgrade from source code instead? (y/N)")
 			var response string
-			fmt.Scanln(&response)
+			if _, err := fmt.Scanln(&response); err != nil {
+				// Handle scan error gracefully
+				response = "n"
+			}
 			if strings.ToLower(response) == "y" || strings.ToLower(response) == "yes" {
 				return performSourceUpgrade()
 			}
-			return fmt.Errorf("upgrade cancelled - no releases available")
+			return fmt.Errorf("upgrade canceled - no releases available")
 		}
 		return fmt.Errorf("failed to check for updates: %v", err)
 	}
@@ -112,7 +115,7 @@ func performUpgrade() error {
 
 	fmt.Printf("📦 New version available: %s -> %s\n", getCurrentVersion(), release.TagName)
 	fmt.Printf("📅 Released: %s\n", formatDate(release.PublishedAt))
-	
+
 	if release.Body != "" {
 		fmt.Println("\n📋 Release Notes:")
 		fmt.Println(release.Body)
@@ -132,7 +135,11 @@ func performUpgrade() error {
 	if err != nil {
 		return fmt.Errorf("failed to download: %v", err)
 	}
-	defer os.Remove(tempFile)
+	defer func() {
+		if rmErr := os.Remove(tempFile); rmErr != nil {
+			fmt.Printf("Warning: failed to remove temp file: %v\n", rmErr)
+		}
+	}()
 
 	// Extract if it's a compressed archive
 	binaryPath := tempFile
@@ -142,7 +149,11 @@ func performUpgrade() error {
 			return fmt.Errorf("failed to extract archive: %v", err)
 		}
 		binaryPath = extractedPath
-		defer os.Remove(extractedPath)
+		defer func() {
+			if rmErr := os.Remove(extractedPath); rmErr != nil {
+				fmt.Printf("Warning: failed to remove extracted file: %v\n", rmErr)
+			}
+		}()
 	}
 
 	// Replace the current binary
@@ -165,7 +176,11 @@ func checkForUpdates(verbose bool) (*GitHubRelease, bool, error) {
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to fetch release info: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close response body: %v\n", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, false, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
@@ -220,7 +235,7 @@ func findAssetForPlatform(assets []GitHubAsset) (*GitHubAsset, error) {
 	// Look for exact matches first
 	for _, asset := range assets {
 		name := strings.ToLower(asset.Name)
-		
+
 		// Check if this asset matches our platform
 		osMatch := false
 		archMatch := false
@@ -252,7 +267,11 @@ func downloadAsset(asset *GitHubAsset) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close response body: %v\n", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("download failed with status %d", resp.StatusCode)
@@ -263,12 +282,18 @@ func downloadAsset(asset *GitHubAsset) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer tempFile.Close()
+	defer func() {
+		if closeErr := tempFile.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close temp file: %v\n", closeErr)
+		}
+	}()
 
 	// Copy with progress indication
 	_, err = io.Copy(tempFile, resp.Body)
 	if err != nil {
-		os.Remove(tempFile.Name())
+		if rmErr := os.Remove(tempFile.Name()); rmErr != nil {
+			fmt.Printf("Warning: failed to remove temp file: %v\n", rmErr)
+		}
 		return "", err
 	}
 
@@ -280,13 +305,21 @@ func extractTarGz(srcPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer srcFile.Close()
+	defer func() {
+		if closeErr := srcFile.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close source file: %v\n", closeErr)
+		}
+	}()
 
 	gzReader, err := gzip.NewReader(srcFile)
 	if err != nil {
 		return "", err
 	}
-	defer gzReader.Close()
+	defer func() {
+		if closeErr := gzReader.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close gzip reader: %v\n", closeErr)
+		}
+	}()
 
 	tarReader := tar.NewReader(gzReader)
 
@@ -306,17 +339,25 @@ func extractTarGz(srcPath string) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			defer tempFile.Close()
+			defer func() {
+		if closeErr := tempFile.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close temp file: %v\n", closeErr)
+		}
+	}()
 
 			_, err = io.Copy(tempFile, tarReader)
 			if err != nil {
-				os.Remove(tempFile.Name())
+				if rmErr := os.Remove(tempFile.Name()); rmErr != nil {
+					fmt.Printf("Warning: failed to remove temp file: %v\n", rmErr)
+				}
 				return "", err
 			}
 
 			// Make executable
 			if err := os.Chmod(tempFile.Name(), 0755); err != nil {
-				os.Remove(tempFile.Name())
+				if rmErr := os.Remove(tempFile.Name()); rmErr != nil {
+					fmt.Printf("Warning: failed to remove temp file: %v\n", rmErr)
+				}
 				return "", err
 			}
 
@@ -349,8 +390,12 @@ func replaceCurrentBinary(newBinaryPath string) error {
 	// Replace the binary
 	if err := copyFile(newBinaryPath, currentExe); err != nil {
 		// Restore backup if replacement fails
-		copyFile(backupPath, currentExe)
-		os.Remove(backupPath)
+		if copyErr := copyFile(backupPath, currentExe); copyErr != nil {
+			fmt.Printf("Warning: failed to restore backup: %v\n", copyErr)
+		}
+		if rmErr := os.Remove(backupPath); rmErr != nil {
+			fmt.Printf("Warning: failed to remove backup: %v\n", rmErr)
+		}
 		return fmt.Errorf("failed to replace binary: %v", err)
 	}
 
@@ -360,7 +405,9 @@ func replaceCurrentBinary(newBinaryPath string) error {
 	}
 
 	// Clean up backup
-	os.Remove(backupPath)
+	if err := os.Remove(backupPath); err != nil {
+		fmt.Printf("Warning: failed to remove backup: %v\n", err)
+	}
 
 	return nil
 }
@@ -370,13 +417,21 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func() {
+		if closeErr := srcFile.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close source file: %v\n", closeErr)
+		}
+	}()
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer dstFile.Close()
+	defer func() {
+		if closeErr := dstFile.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close destination file: %v\n", closeErr)
+		}
+	}()
 
 	_, err = io.Copy(dstFile, srcFile)
 	return err
@@ -424,7 +479,11 @@ func performSourceUpgrade() error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if rmErr := os.RemoveAll(tempDir); rmErr != nil {
+			fmt.Printf("Warning: failed to clean up temp directory: %v\n", rmErr)
+		}
+	}()
 
 	fmt.Printf("📁 Working directory: %s\n", tempDir)
 

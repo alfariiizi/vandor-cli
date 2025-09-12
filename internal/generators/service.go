@@ -29,7 +29,7 @@ func GenerateService(serviceName string) error {
 	data := ServiceData{
 		ModuleName:  utils.GetModuleName(),
 		Name:        serviceName,
-		ServiceName: strings.ToLower(serviceName), // snake_case for package name
+		ServiceName: strings.ToLower(serviceName),                       // snake_case for package name
 		Receiver:    strings.ToLower(serviceName[:1]) + serviceName[1:], // camelCase for receiver
 	}
 
@@ -81,8 +81,8 @@ func generateServiceFile(data ServiceData) *jen.File {
 
 	// Generate service type alias
 	f.Type().Id(data.Name).Qual("model", "Service").Types(
-		jen.Id(data.Name + "Input"),
-		jen.Id(data.Name + "Output"),
+		jen.Id(data.Name+"Input"),
+		jen.Id(data.Name+"Output"),
 	)
 
 	// Generate implementation struct
@@ -94,7 +94,7 @@ func generateServiceFile(data ServiceData) *jen.File {
 	)
 
 	// Generate constructor
-	f.Func().Id("New" + data.Name).Params(
+	f.Func().Id("New"+data.Name).Params(
 		jen.Id("domain").Op("*").Qual("domain_entries", "Domain"),
 		jen.Id("client").Op("*").Qual("db", "Client"),
 		jen.Id("usecase").Op("*").Qual("usecase", "Usecases"),
@@ -118,8 +118,8 @@ func generateServiceFile(data ServiceData) *jen.File {
 	// Generate Execute method
 	f.Func().Params(jen.Id("s").Op("*").Id(data.Receiver)).Id("Execute").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("input").Id(data.Name + "Input"),
-	).Params(jen.Op("*").Id(data.Name + "Output"), jen.Error()).Block(
+		jen.Id("input").Id(data.Name+"Input"),
+	).Params(jen.Op("*").Id(data.Name+"Output"), jen.Error()).Block(
 		jen.If(jen.Id("err").Op(":=").Id("s").Dot("Validate").Call(jen.Id("input")), jen.Id("err").Op("!=").Nil()).Block(
 			jen.Return(jen.Nil(), jen.Id("err")),
 		),
@@ -148,8 +148,8 @@ func generateServiceFile(data ServiceData) *jen.File {
 	// Generate Observer method
 	f.Func().Params(jen.Id("s").Op("*").Id(data.Receiver)).Id("Observer").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("input").Id(data.Name + "Input"),
-		jen.Id("output").Op("*").Id(data.Name + "Output"),
+		jen.Id("input").Id(data.Name+"Input"),
+		jen.Id("output").Op("*").Id(data.Name+"Output"),
 	).Error().Block(
 		jen.Comment("TODO: Implement observer logic"),
 		jen.Comment("This is optional. You can leave this blank if not needed."),
@@ -160,8 +160,8 @@ func generateServiceFile(data ServiceData) *jen.File {
 	// Generate Process method
 	f.Func().Params(jen.Id("s").Op("*").Id(data.Receiver)).Id("Process").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("input").Id(data.Name + "Input"),
-	).Params(jen.Op("*").Id(data.Name + "Output"), jen.Error()).Block(
+		jen.Id("input").Id(data.Name+"Input"),
+	).Params(jen.Op("*").Id(data.Name+"Output"), jen.Error()).Block(
 		jen.Comment("TODO: Implement logic"),
 		jen.Line(),
 		jen.Return(jen.Nil(), jen.Nil()),

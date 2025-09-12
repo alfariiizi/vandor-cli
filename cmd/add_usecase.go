@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/alfariiizi/vandor-cli/internal/generators"
+	"github.com/spf13/cobra"
 )
 
 var addUsecaseCmd = &cobra.Command{
@@ -15,18 +15,18 @@ var addUsecaseCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		fmt.Printf("Creating new usecase: %s\n", name)
-		
+
 		// Create new usecase using Jennifer generator
 		if err := generators.GenerateUsecase(name); err != nil {
 			er(fmt.Sprintf("Failed to create usecase: %v", err))
 		}
-		
+
 		// Auto-sync usecase registry
 		fmt.Println("Auto-syncing usecase registry...")
 		if err := generators.GenerateUsecaseRegistry(); err != nil {
 			er(fmt.Sprintf("Failed to sync usecase registry: %v", err))
 		}
-		
+
 		fmt.Printf("✅ Usecase '%s' created and synced successfully!\n", name)
 	},
 }

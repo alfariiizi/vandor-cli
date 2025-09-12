@@ -75,9 +75,9 @@ func generateDomainFile(data DomainData) *jen.File {
 	f.Func().Id("New"+data.Name+"Domain").
 		Params(jen.Id("client").Op("*").Qual("db", "Client")).
 		Qual("domain_builder", "Domain").Types(
-			jen.Op("*").Qual("db", data.Name),
-			jen.Op("*").Id(data.Name),
-		).Block(
+		jen.Op("*").Qual("db", data.Name),
+		jen.Op("*").Id(data.Name),
+	).Block(
 		jen.Return(
 			jen.Qual("domain_builder", "NewDomain").Call(
 				jen.Func().Params(

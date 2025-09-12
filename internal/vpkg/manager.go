@@ -12,10 +12,10 @@ import (
 )
 
 type Manager struct {
-	configPath    string
-	vpkgDir       string
-	registryURL   string
-	communityURL  string
+	configPath   string
+	vpkgDir      string
+	registryURL  string
+	communityURL string
 }
 
 type Package struct {
@@ -47,10 +47,10 @@ type PackageRegistry struct {
 
 func NewManager() (*Manager, error) {
 	return &Manager{
-		configPath:    "vandor-config.yaml",
-		vpkgDir:       "internal/vpkg",
-		registryURL:   "https://raw.githubusercontent.com/alfarizi/vandor-packages/main/registry.yaml",
-		communityURL:  "https://raw.githubusercontent.com/vandor-community/packages/main/registry.yaml",
+		configPath:   "vandor-config.yaml",
+		vpkgDir:      "internal/vpkg",
+		registryURL:  "https://raw.githubusercontent.com/alfarizi/vandor-packages/main/registry.yaml",
+		communityURL: "https://raw.githubusercontent.com/vandor-community/packages/main/registry.yaml",
 	}, nil
 }
 
@@ -179,12 +179,12 @@ func (m *Manager) UpdatePackage(packageName string) error {
 			if installedPkg.Version == pkg.Version {
 				return fmt.Errorf("package %s is already up to date (v%s)", packageName, pkg.Version)
 			}
-			
+
 			// Update package
 			if err := m.installPackage(pkg); err != nil {
 				return fmt.Errorf("failed to update package: %v", err)
 			}
-			
+
 			config.Vpkg[i] = *pkg
 			found = true
 			break
@@ -214,11 +214,11 @@ func (m *Manager) UpdateAllPackages() error {
 
 		if installedPkg.Version != pkg.Version {
 			fmt.Printf("Updating %s from v%s to v%s\n", pkg.Name, installedPkg.Version, pkg.Version)
-			
+
 			if err := m.installPackage(pkg); err != nil {
 				return fmt.Errorf("failed to update package %s: %v", pkg.Name, err)
 			}
-			
+
 			config.Vpkg[i] = *pkg
 		}
 	}
@@ -229,13 +229,13 @@ func (m *Manager) UpdateAllPackages() error {
 func (m *Manager) SearchPackages(query string) ([]Package, error) {
 	// Search in official registry
 	officialPackages, _ := m.fetchPackagesFromRegistry(m.registryURL)
-	
+
 	// Search in community registry
 	communityPackages, _ := m.fetchPackagesFromRegistry(m.communityURL)
-	
+
 	// Combine results
 	allPackages := append(officialPackages, communityPackages...)
-	
+
 	if query == "" {
 		return allPackages, nil
 	}
@@ -245,7 +245,7 @@ func (m *Manager) SearchPackages(query string) ([]Package, error) {
 	queryLower := strings.ToLower(query)
 	for _, pkg := range allPackages {
 		if strings.Contains(strings.ToLower(pkg.Name), queryLower) ||
-		   strings.Contains(strings.ToLower(pkg.Description), queryLower) {
+			strings.Contains(strings.ToLower(pkg.Description), queryLower) {
 			results = append(results, pkg)
 		}
 	}
@@ -282,7 +282,11 @@ func (m *Manager) fetchPackagesFromRegistry(url string) ([]Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close response body: %v\n", closeErr)
+		}
+	}()
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -327,7 +331,7 @@ func (m *Manager) installPackage(pkg *Package) error {
 	// Download package files (this is a simplified implementation)
 	// In a real implementation, you would download the actual package files
 	// from the repository and extract them to the package directory
-	
+
 	// Create a basic setup file as example
 	setupContent := fmt.Sprintf(`# %s Package Setup
 

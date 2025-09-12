@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	
+
 	"github.com/alfariiizi/vandor-cli/internal/theme"
 )
 
@@ -43,7 +43,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		}
 	}
 
-	fmt.Fprint(w, fn(str))
+	if _, err := fmt.Fprint(w, fn(str)); err != nil {
+		// Error writing to output stream - not much we can do here
+		return
+	}
 }
 
 type model struct {
@@ -64,7 +67,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Set responsive width with reasonable bounds
 		width := msg.Width
 		if width < 40 {
-			width = 40  // minimum width for readability
+			width = 40 // minimum width for readability
 		}
 		if width > 120 {
 			width = 120 // maximum width to prevent overly wide display
@@ -347,4 +350,3 @@ func (a *App) Run() error {
 
 	return nil
 }
-

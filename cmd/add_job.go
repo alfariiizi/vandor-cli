@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/alfariiizi/vandor-cli/internal/generators"
+	"github.com/spf13/cobra"
 )
 
 var addJobCmd = &cobra.Command{
@@ -15,18 +15,18 @@ var addJobCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		fmt.Printf("Creating new job: %s\n", name)
-		
+
 		// Create new job using Jennifer generator
 		if err := generators.GenerateJob(name); err != nil {
 			er(fmt.Sprintf("Failed to create job: %v", err))
 		}
-		
+
 		// Auto-sync job registry
 		fmt.Println("Auto-syncing job registry...")
 		if err := generators.GenerateJobRegistry(); err != nil {
 			er(fmt.Sprintf("Failed to sync job registry: %v", err))
 		}
-		
+
 		fmt.Printf("✅ Job '%s' created and synced successfully!\n", name)
 	},
 }

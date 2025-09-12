@@ -95,7 +95,7 @@ func generateGroupServiceFile(serviceRoot, group string, services []string) erro
 	// Sort services for consistent output
 	sort.Strings(services)
 
-	structName := strings.Title(group) + "Service"
+	structName := utils.ToPascalCase(group) + "Service"
 	f := jen.NewFile(group + "_service")
 
 	// Add header comment
@@ -213,7 +213,7 @@ func generateMainServiceRegistry(serviceRoot string) error {
 	for _, group := range sortedGroups {
 		structName := groupStructMap[group]
 		serviceFields = append(serviceFields,
-			jen.Id(strings.Title(group)).Qual(group+"_service", structName),
+			jen.Id(utils.ToPascalCase(group)).Qual(group+"_service", structName),
 		)
 	}
 	f.Type().Id("Services").Struct(serviceFields...)
@@ -228,7 +228,7 @@ func generateMainServiceRegistry(serviceRoot string) error {
 		constructorParams = append(constructorParams,
 			jen.Id(param).Qual(group+"_service", structName),
 		)
-		constructorDict[jen.Id(strings.Title(group))] = jen.Id(param)
+		constructorDict[jen.Id(utils.ToPascalCase(group))] = jen.Id(param)
 	}
 
 	// Generate NewServices constructor

@@ -63,32 +63,32 @@ func getTemplateRepositories() map[string]string {
 // cloneTemplate clones a GitHub repository template
 func cloneTemplate(repoURL, targetDir, projectName string) error {
 	fmt.Printf("📥 Cloning template from %s...\n", repoURL)
-	
+
 	// Clone the repository
 	cmd := exec.Command("git", "clone", repoURL, targetDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to clone template repository: %v", err)
 	}
-	
+
 	// Remove .git directory to detach from template repo
 	gitDir := filepath.Join(targetDir, ".git")
 	if err := os.RemoveAll(gitDir); err != nil {
 		fmt.Printf("Warning: Could not remove .git directory: %v\n", err)
 	}
-	
+
 	// Initialize new git repository
 	if err := initializeGitRepo(targetDir); err != nil {
 		fmt.Printf("Warning: Could not initialize git repository: %v\n", err)
 	}
-	
+
 	// Replace template placeholders with actual project name
 	if err := replaceTemplatePlaceholders(targetDir, projectName); err != nil {
 		fmt.Printf("Warning: Could not replace template placeholders: %v\n", err)
 	}
-	
+
 	return nil
 }
 
@@ -121,7 +121,7 @@ func initProject() error {
 		fmt.Print("vandor-config.yaml already exists. Overwrite? [y/N]: ")
 		response, _ := reader.ReadString('\n')
 		if strings.ToLower(strings.TrimSpace(response)) != "y" {
-			fmt.Println("Initialization cancelled.")
+			fmt.Println("Initialization canceled.")
 			return nil
 		}
 	}
@@ -240,7 +240,7 @@ func createProjectFromGitHubTemplate(config VandorConfig) error {
 
 	// Get template repositories
 	templates := getTemplateRepositories()
-	
+
 	// Get the repository URL for the selected architecture
 	repoURL, exists := templates[config.Vandor.Architecture]
 	if !exists {
@@ -283,21 +283,25 @@ func createProjectFromGitHubTemplate(config VandorConfig) error {
 		if err := cloneTemplate(repoURL, tempDir, config.Project.Name); err != nil {
 			return err
 		}
-		
+
 		// Move files from temp to current directory
 		if err := moveTemplateFiles(tempDir, "."); err != nil {
-			os.RemoveAll(tempDir) // Clean up on error
+			if rmErr := os.RemoveAll(tempDir); rmErr != nil {
+				fmt.Printf("Warning: failed to clean up temp directory: %v\n", rmErr)
+			}
 			return fmt.Errorf("failed to move template files: %v", err)
 		}
-		
+
 		// Clean up temp directory
-		os.RemoveAll(tempDir)
+		if err := os.RemoveAll(tempDir); err != nil {
+			fmt.Printf("Warning: failed to clean up temp directory: %v\n", err)
+		}
 	} else {
 		// Clone directly to subdirectory
 		if err := cloneTemplate(repoURL, targetDir, config.Project.Name); err != nil {
 			return err
 		}
-		
+
 		// Move vandor-config.yaml to the project directory
 		if err := os.Rename("vandor-config.yaml", filepath.Join(targetDir, "vandor-config.yaml")); err != nil {
 			fmt.Printf("Warning: Could not move vandor-config.yaml to project directory: %v\n", err)
@@ -322,19 +326,19 @@ func moveTemplateFiles(src, dst string) error {
 	for _, file := range files {
 		srcPath := filepath.Join(src, file.Name())
 		dstPath := filepath.Join(dst, file.Name())
-		
+
 		if err := os.Rename(srcPath, dstPath); err != nil {
 			return fmt.Errorf("failed to move %s: %v", file.Name(), err)
 		}
 	}
-	
+
 	return nil
 }
 
 // updateProjectConfiguration updates project files with actual configuration
 func updateProjectConfiguration(projectDir string, config VandorConfig) error {
 	fmt.Printf("🔧 Updating project configuration...\n")
-	
+
 	// Update go.mod if it exists
 	goModPath := filepath.Join(projectDir, "go.mod")
 	if _, err := os.Stat(goModPath); err == nil {
@@ -467,4 +471,3 @@ database:
 
 	return nil
 }
-

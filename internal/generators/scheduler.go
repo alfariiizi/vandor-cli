@@ -12,8 +12,8 @@ import (
 )
 
 type SchedulerData struct {
-	ModuleName  string // e.g., "github.com/alfariiizi/vandor-cli"
-	PascalName  string // e.g., "BackupData"
+	ModuleName   string // e.g., "github.com/alfariiizi/vandor-cli"
+	PascalName   string // e.g., "BackupData"
 	FunctionName string // e.g., "RegisterBackupDataJob"
 }
 
@@ -70,7 +70,7 @@ func generateSchedulerFile(data SchedulerData) *jen.File {
 	).Block(
 		jen.Id("s").Dot("Scheduler").Dot("Every").Call(jen.Lit(1)).Dot("Minute").Call().Dot("Do").Call(
 			jen.Func().Params().Block(
-				jen.Qual("log", "Println").Call(jen.Lit("[cron] Running " + data.PascalName + " job...")),
+				jen.Qual("log", "Println").Call(jen.Lit("[cron] Running "+data.PascalName+" job...")),
 				jen.Line(),
 				jen.Id("payload").Op(":=").Qual("job", "LogSystemPayload").Values(jen.Dict{
 					jen.Id("Message"): jen.Lit(data.PascalName + " job executed"),
@@ -84,7 +84,7 @@ func generateSchedulerFile(data SchedulerData) *jen.File {
 					jen.Id("err").Op("!=").Nil(),
 				).Block(
 					jen.Qual("log", "Printf").Call(
-						jen.Lit("[cron] Error enqueueing " + data.PascalName + " job: %v"),
+						jen.Lit("[cron] Error enqueueing "+data.PascalName+" job: %v"),
 						jen.Id("err"),
 					),
 				),

@@ -19,7 +19,7 @@ var versionCmd = &cobra.Command{
 	Long:  `Print detailed version information for Vandor CLI including build details and system info.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		detailed, _ := cmd.Flags().GetBool("detailed")
-		
+
 		if detailed {
 			showDetailedVersion()
 		} else {
@@ -43,7 +43,7 @@ func showDetailedVersion() {
 	fmt.Printf("Commit:  %s\n", commit)
 	fmt.Printf("Built:   %s\n", date)
 	fmt.Println()
-	
+
 	// System information
 	fmt.Println("💻 System Information")
 	fmt.Println("--------------------")
@@ -52,7 +52,7 @@ func showDetailedVersion() {
 	fmt.Printf("Go Version:   %s\n", runtime.Version())
 	fmt.Printf("Compiler:     %s\n", runtime.Compiler)
 	fmt.Println()
-	
+
 	// Installation information
 	fmt.Println("📍 Installation Information")
 	fmt.Println("---------------------------")
@@ -64,7 +64,7 @@ func showDetailedVersion() {
 		fmt.Printf("Working Dir: %s\n", pwd)
 	}
 	fmt.Println()
-	
+
 	// Update information
 	fmt.Println("🔄 Update Information")
 	fmt.Println("--------------------")

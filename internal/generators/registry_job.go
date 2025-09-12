@@ -95,11 +95,11 @@ func parseJobFile(path string) JobInfo {
 
 	jobName := filepath.Base(path)
 	jobName = strings.TrimSuffix(jobName, ".go")
-	
+
 	// Convert filename to PascalCase (e.g., send_email -> SendEmail)
 	parts := strings.Split(jobName, "_")
 	for i, part := range parts {
-		parts[i] = strings.Title(part)
+		parts[i] = utils.ToPascalCase(part)
 	}
 	baseName := strings.Join(parts, "")
 

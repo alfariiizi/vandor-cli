@@ -9,16 +9,16 @@ import (
 
 // Theme contains all the color styles for the Vandor CLI
 type Theme struct {
-	Title         lipgloss.AdaptiveColor
-	Item          lipgloss.AdaptiveColor
-	SelectedItem  lipgloss.AdaptiveColor
-	Pagination    lipgloss.AdaptiveColor
-	Help          lipgloss.AdaptiveColor
-	Quit          lipgloss.AdaptiveColor
-	Success       lipgloss.AdaptiveColor
-	Warning       lipgloss.AdaptiveColor
-	Error         lipgloss.AdaptiveColor
-	Info          lipgloss.AdaptiveColor
+	Title        lipgloss.AdaptiveColor
+	Item         lipgloss.AdaptiveColor
+	SelectedItem lipgloss.AdaptiveColor
+	Pagination   lipgloss.AdaptiveColor
+	Help         lipgloss.AdaptiveColor
+	Quit         lipgloss.AdaptiveColor
+	Success      lipgloss.AdaptiveColor
+	Warning      lipgloss.AdaptiveColor
+	Error        lipgloss.AdaptiveColor
+	Info         lipgloss.AdaptiveColor
 }
 
 // DefaultTheme provides the default adaptive color theme
@@ -26,43 +26,43 @@ func DefaultTheme() *Theme {
 	return &Theme{
 		Title: lipgloss.AdaptiveColor{
 			Light: "#1a1a1a", // Dark text for light backgrounds
-			Dark:  "#ffffff",  // Light text for dark backgrounds
+			Dark:  "#ffffff", // Light text for dark backgrounds
 		},
 		Item: lipgloss.AdaptiveColor{
 			Light: "#4a4a4a", // Medium gray for light backgrounds
-			Dark:  "#d1d5db",  // Light gray for dark backgrounds
+			Dark:  "#d1d5db", // Light gray for dark backgrounds
 		},
 		SelectedItem: lipgloss.AdaptiveColor{
 			Light: "#0ea5e9", // Blue for light backgrounds
-			Dark:  "#38bdf8",  // Lighter blue for dark backgrounds
+			Dark:  "#38bdf8", // Lighter blue for dark backgrounds
 		},
 		Pagination: lipgloss.AdaptiveColor{
 			Light: "#6b7280", // Gray for light backgrounds
-			Dark:  "#9ca3af",  // Lighter gray for dark backgrounds
+			Dark:  "#9ca3af", // Lighter gray for dark backgrounds
 		},
 		Help: lipgloss.AdaptiveColor{
 			Light: "#6b7280", // Gray for light backgrounds
-			Dark:  "#9ca3af",  // Lighter gray for dark backgrounds
+			Dark:  "#9ca3af", // Lighter gray for dark backgrounds
 		},
 		Quit: lipgloss.AdaptiveColor{
 			Light: "#374151", // Dark gray for light backgrounds
-			Dark:  "#e5e7eb",  // Light gray for dark backgrounds
+			Dark:  "#e5e7eb", // Light gray for dark backgrounds
 		},
 		Success: lipgloss.AdaptiveColor{
 			Light: "#059669", // Green for light backgrounds
-			Dark:  "#10b981",  // Lighter green for dark backgrounds
+			Dark:  "#10b981", // Lighter green for dark backgrounds
 		},
 		Warning: lipgloss.AdaptiveColor{
 			Light: "#d97706", // Orange for light backgrounds
-			Dark:  "#f59e0b",  // Lighter orange for dark backgrounds
+			Dark:  "#f59e0b", // Lighter orange for dark backgrounds
 		},
 		Error: lipgloss.AdaptiveColor{
 			Light: "#dc2626", // Red for light backgrounds
-			Dark:  "#ef4444",  // Lighter red for dark backgrounds
+			Dark:  "#ef4444", // Lighter red for dark backgrounds
 		},
 		Info: lipgloss.AdaptiveColor{
 			Light: "#2563eb", // Blue for light backgrounds
-			Dark:  "#3b82f6",  // Lighter blue for dark backgrounds
+			Dark:  "#3b82f6", // Lighter blue for dark backgrounds
 		},
 	}
 }
@@ -128,7 +128,7 @@ func CatppuccinMochaTheme() *Theme {
 			Dark:  "#cdd6f4", // Mocha Text
 		},
 		Item: lipgloss.AdaptiveColor{
-			Light: "#6c6f85", // Fallback for light mode  
+			Light: "#6c6f85", // Fallback for light mode
 			Dark:  "#bac2de", // Mocha Subtext1
 		},
 		SelectedItem: lipgloss.AdaptiveColor{
@@ -263,43 +263,43 @@ func DraculaTheme() *Theme {
 	return &Theme{
 		Title: lipgloss.AdaptiveColor{
 			Light: "#44475a", // Dracula Comment (adapted for light)
-			Dark:  "#f8f8f2",  // Dracula Foreground
+			Dark:  "#f8f8f2", // Dracula Foreground
 		},
 		Item: lipgloss.AdaptiveColor{
 			Light: "#6272a4", // Dracula Comment
-			Dark:  "#f8f8f2",  // Dracula Foreground
+			Dark:  "#f8f8f2", // Dracula Foreground
 		},
 		SelectedItem: lipgloss.AdaptiveColor{
 			Light: "#8be9fd", // Dracula Cyan
-			Dark:  "#8be9fd",  // Dracula Cyan
+			Dark:  "#8be9fd", // Dracula Cyan
 		},
 		Pagination: lipgloss.AdaptiveColor{
 			Light: "#6272a4", // Dracula Comment
-			Dark:  "#6272a4",  // Dracula Comment
+			Dark:  "#6272a4", // Dracula Comment
 		},
 		Help: lipgloss.AdaptiveColor{
 			Light: "#6272a4", // Dracula Comment
-			Dark:  "#6272a4",  // Dracula Comment
+			Dark:  "#6272a4", // Dracula Comment
 		},
 		Quit: lipgloss.AdaptiveColor{
 			Light: "#44475a", // Dracula Comment (adapted)
-			Dark:  "#f8f8f2",  // Dracula Foreground
+			Dark:  "#f8f8f2", // Dracula Foreground
 		},
 		Success: lipgloss.AdaptiveColor{
 			Light: "#50fa7b", // Dracula Green
-			Dark:  "#50fa7b",  // Dracula Green
+			Dark:  "#50fa7b", // Dracula Green
 		},
 		Warning: lipgloss.AdaptiveColor{
 			Light: "#f1fa8c", // Dracula Yellow
-			Dark:  "#f1fa8c",  // Dracula Yellow
+			Dark:  "#f1fa8c", // Dracula Yellow
 		},
 		Error: lipgloss.AdaptiveColor{
 			Light: "#ff5555", // Dracula Red
-			Dark:  "#ff5555",  // Dracula Red
+			Dark:  "#ff5555", // Dracula Red
 		},
 		Info: lipgloss.AdaptiveColor{
 			Light: "#bd93f9", // Dracula Purple
-			Dark:  "#bd93f9",  // Dracula Purple
+			Dark:  "#bd93f9", // Dracula Purple
 		},
 	}
 }

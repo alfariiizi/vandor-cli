@@ -10,48 +10,48 @@ import (
 
 // TaskfileSchema represents the structure of a Taskfile
 type TaskfileSchema struct {
-	Version   string                 `yaml:"version"`
-	Vars      map[string]interface{} `yaml:"vars,omitempty"`
-	Env       map[string]interface{} `yaml:"env,omitempty"`
-	Tasks     map[string]Task        `yaml:"tasks"`
-	Includes  map[string]interface{} `yaml:"includes,omitempty"`
-	Output    string                 `yaml:"output,omitempty"`
-	Method    string                 `yaml:"method,omitempty"`
-	Run       string                 `yaml:"run,omitempty"`
-	Interval  string                 `yaml:"interval,omitempty"`
-	Watch     bool                   `yaml:"watch,omitempty"`
-	Dotenv    []string               `yaml:"dotenv,omitempty"`
-	Silent    bool                   `yaml:"silent,omitempty"`
+	Version  string                 `yaml:"version"`
+	Vars     map[string]interface{} `yaml:"vars,omitempty"`
+	Env      map[string]interface{} `yaml:"env,omitempty"`
+	Tasks    map[string]Task        `yaml:"tasks"`
+	Includes map[string]interface{} `yaml:"includes,omitempty"`
+	Output   string                 `yaml:"output,omitempty"`
+	Method   string                 `yaml:"method,omitempty"`
+	Run      string                 `yaml:"run,omitempty"`
+	Interval string                 `yaml:"interval,omitempty"`
+	Watch    bool                   `yaml:"watch,omitempty"`
+	Dotenv   []string               `yaml:"dotenv,omitempty"`
+	Silent   bool                   `yaml:"silent,omitempty"`
 }
 
 // Task represents a single task in the Taskfile
 type Task struct {
-	Desc         string                 `yaml:"desc,omitempty"`
-	Summary      string                 `yaml:"summary,omitempty"`
-	Aliases      []string               `yaml:"aliases,omitempty"`
-	Cmds         []interface{}          `yaml:"cmds,omitempty"`
-	Cmd          string                 `yaml:"cmd,omitempty"` // For simple string tasks
-	Deps         []interface{}          `yaml:"deps,omitempty"`
-	Preconditions []Precondition        `yaml:"preconditions,omitempty"`
-	Requires     RequiredVars          `yaml:"requires,omitempty"`
-	Vars         map[string]interface{} `yaml:"vars,omitempty"`
-	Env          map[string]interface{} `yaml:"env,omitempty"`
-	Dir          string                 `yaml:"dir,omitempty"`
-	Sources      []string               `yaml:"sources,omitempty"`
-	Generates    []string               `yaml:"generates,omitempty"`
-	Status       []string               `yaml:"status,omitempty"`
-	Method       string                 `yaml:"method,omitempty"`
-	Prefix       string                 `yaml:"prefix,omitempty"`
-	IgnoreError  bool                   `yaml:"ignore_error,omitempty"`
-	Silent       bool                   `yaml:"silent,omitempty"`
-	Interactive  bool                   `yaml:"interactive,omitempty"`
-	Internal     bool                   `yaml:"internal,omitempty"`
-	Platforms    []string               `yaml:"platforms,omitempty"`
-	Label        string                 `yaml:"label,omitempty"`
-	Prompt       string                 `yaml:"prompt,omitempty"`
-	Run          string                 `yaml:"run,omitempty"`
-	Watch        bool                   `yaml:"watch,omitempty"`
-	Dotenv       []string               `yaml:"dotenv,omitempty"`
+	Desc          string                 `yaml:"desc,omitempty"`
+	Summary       string                 `yaml:"summary,omitempty"`
+	Aliases       []string               `yaml:"aliases,omitempty"`
+	Cmds          []interface{}          `yaml:"cmds,omitempty"`
+	Cmd           string                 `yaml:"cmd,omitempty"` // For simple string tasks
+	Deps          []interface{}          `yaml:"deps,omitempty"`
+	Preconditions []Precondition         `yaml:"preconditions,omitempty"`
+	Requires      RequiredVars           `yaml:"requires,omitempty"`
+	Vars          map[string]interface{} `yaml:"vars,omitempty"`
+	Env           map[string]interface{} `yaml:"env,omitempty"`
+	Dir           string                 `yaml:"dir,omitempty"`
+	Sources       []string               `yaml:"sources,omitempty"`
+	Generates     []string               `yaml:"generates,omitempty"`
+	Status        []string               `yaml:"status,omitempty"`
+	Method        string                 `yaml:"method,omitempty"`
+	Prefix        string                 `yaml:"prefix,omitempty"`
+	IgnoreError   bool                   `yaml:"ignore_error,omitempty"`
+	Silent        bool                   `yaml:"silent,omitempty"`
+	Interactive   bool                   `yaml:"interactive,omitempty"`
+	Internal      bool                   `yaml:"internal,omitempty"`
+	Platforms     []string               `yaml:"platforms,omitempty"`
+	Label         string                 `yaml:"label,omitempty"`
+	Prompt        string                 `yaml:"prompt,omitempty"`
+	Run           string                 `yaml:"run,omitempty"`
+	Watch         bool                   `yaml:"watch,omitempty"`
+	Dotenv        []string               `yaml:"dotenv,omitempty"`
 }
 
 // Precondition represents a task precondition
@@ -67,29 +67,29 @@ type RequiredVars struct {
 
 // Command represents a single command that can be a string or object
 type Command struct {
-	Cmd         string                 `yaml:"cmd,omitempty"`
-	Silent      bool                   `yaml:"silent,omitempty"`
-	Task        string                 `yaml:"task,omitempty"`
-	Vars        map[string]interface{} `yaml:"vars,omitempty"`
-	Ignore      bool                   `yaml:"ignore_error,omitempty"`
-	Defer       bool                   `yaml:"defer,omitempty"`
-	Platforms   []string               `yaml:"platforms,omitempty"`
-	Dir         string                 `yaml:"dir,omitempty"`
+	Cmd       string                 `yaml:"cmd,omitempty"`
+	Silent    bool                   `yaml:"silent,omitempty"`
+	Task      string                 `yaml:"task,omitempty"`
+	Vars      map[string]interface{} `yaml:"vars,omitempty"`
+	Ignore    bool                   `yaml:"ignore_error,omitempty"`
+	Defer     bool                   `yaml:"defer,omitempty"`
+	Platforms []string               `yaml:"platforms,omitempty"`
+	Dir       string                 `yaml:"dir,omitempty"`
 }
 
 // Variable represents a variable that can be a simple value or complex object
 type Variable struct {
-	Static   string   `yaml:"-"`
-	Sh       string   `yaml:"sh,omitempty"`
-	Ref      string   `yaml:"ref,omitempty"`
-	Dir      string   `yaml:"dir,omitempty"`
+	Static string `yaml:"-"`
+	Sh     string `yaml:"sh,omitempty"`
+	Ref    string `yaml:"ref,omitempty"`
+	Dir    string `yaml:"dir,omitempty"`
 }
 
 // FindTaskfile searches for taskfiles in common naming patterns
 func FindTaskfile() (string, error) {
 	possibleNames := []string{
 		"Taskfile.yaml",
-		"Taskfile.yml", 
+		"Taskfile.yml",
 		"taskfile.yaml",
 		"taskfile.yml",
 		"taskfiles.yaml",
@@ -187,10 +187,10 @@ func (t *Task) GetRequiredVars() []string {
 // GetTaskVars extracts variables that should be prompted for
 func (t *Task) GetTaskVars() []string {
 	var vars []string
-	
+
 	// Add required vars
 	vars = append(vars, t.GetRequiredVars()...)
-	
+
 	// Parse commands for template variables
 	commands, _ := t.GetTaskCommands()
 	for _, cmd := range commands {
@@ -201,7 +201,7 @@ func (t *Task) GetTaskVars() []string {
 			vars = append(vars, extractTemplateVars(cmd.Cmd)...)
 		}
 	}
-	
+
 	// Remove duplicates
 	return uniqueStrings(vars)
 }
@@ -228,11 +228,11 @@ func extractTemplateVars(input string) []string {
 // isSpecialVariable checks if a variable is a built-in Task variable
 func isSpecialVariable(varName string) bool {
 	specialVars := []string{
-		"ROOT_DIR", "TASKFILE_DIR", "USER_WORKING_DIR", 
+		"ROOT_DIR", "TASKFILE_DIR", "USER_WORKING_DIR",
 		"CLI_ARGS", "CLI_ARGS_LIST", "CLI_FORCE",
 		"TASK", "CHECKSUM", "TIMESTAMP",
 	}
-	
+
 	for _, special := range specialVars {
 		if varName == special {
 			return true
@@ -245,13 +245,13 @@ func isSpecialVariable(varName string) bool {
 func uniqueStrings(input []string) []string {
 	seen := make(map[string]bool)
 	var result []string
-	
+
 	for _, str := range input {
 		if !seen[str] {
 			seen[str] = true
 			result = append(result, str)
 		}
 	}
-	
+
 	return result
 }

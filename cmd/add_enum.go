@@ -15,14 +15,14 @@ var addEnumCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		fmt.Printf("Creating new enum: %s\n", name)
-		
+
 		// Convert to lowercase as per the original task
 		enumName := strings.ToLower(name)
-		
+
 		if err := runGoCommand("run", "./internal/cmd/enum/cmd/main.go", "add", enumName); err != nil {
 			er(fmt.Sprintf("Failed to create enum: %v", err))
 		}
-		
+
 		fmt.Printf("✅ Enum '%s' created successfully!\n", name)
 	},
 }

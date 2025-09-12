@@ -25,7 +25,7 @@ func GenerateHandler(name, group, method string) error {
 	if name == "" || group == "" || method == "" {
 		return fmt.Errorf("all parameters (name, group, method) are required")
 	}
-	
+
 	// Generate path from name (convert to lowercase)
 	path := strings.ToLower(name)
 
@@ -88,9 +88,9 @@ func generateHandlerFile(data HandlerData) *jen.File {
 	generateInputStruct(f, data)
 
 	// Generate output types
-	f.Type().Id(data.Name + "Output").Qual("types", "OutputResponseData").Types(jen.Id(data.Name + "Data"))
+	f.Type().Id(data.Name+"Output").Qual("types", "OutputResponseData").Types(jen.Id(data.Name + "Data"))
 
-	f.Type().Id(data.Name + "Data").Struct(
+	f.Type().Id(data.Name+"Data").Struct(
 		jen.Comment("Example response data"),
 		jen.Id("ID").String().Tag(map[string]string{
 			"json":    "id",
@@ -107,9 +107,9 @@ func generateHandlerFile(data HandlerData) *jen.File {
 	)
 
 	// Generate handler type
-	f.Type().Id(data.Name + "Handler").Qual("model", "HTTPHandler").Types(
-		jen.Id(data.Name + "Input"),
-		jen.Id(data.Name + "Output"),
+	f.Type().Id(data.Name+"Handler").Qual("model", "HTTPHandler").Types(
+		jen.Id(data.Name+"Input"),
+		jen.Id(data.Name+"Output"),
 	)
 
 	// Generate implementation struct
@@ -120,11 +120,11 @@ func generateHandlerFile(data HandlerData) *jen.File {
 	)
 
 	// Generate constructor
-	f.Func().Id("New" + data.Name).Params(
+	f.Func().Id("New"+data.Name).Params(
 		jen.Id("api").Op("*").Qual("api", "HttpApi"),
 		jen.Id("service").Op("*").Qual("service", "Services"),
 		jen.Id("client").Op("*").Qual("db", "Client"),
-	).Id(data.Name + "Handler").Block(
+	).Id(data.Name+"Handler").Block(
 		jen.Id("h").Op(":=").Op("&").Id(data.Receiver).Values(jen.Dict{
 			jen.Id("api"):     jen.Id("api").Dot("BaseAPI"),
 			jen.Id("service"): jen.Id("service"),
@@ -149,11 +149,11 @@ func generateHandlerFile(data HandlerData) *jen.File {
 	// Generate Handler method
 	f.Func().Params(jen.Id("h").Op("*").Id(data.Receiver)).Id("Handler").Params(
 		jen.Id("ctx").Qual("context", "Context"),
-		jen.Id("input").Op("*").Id(data.Name + "Input"),
-	).Params(jen.Op("*").Id(data.Name + "Output"), jen.Error()).Block(
+		jen.Id("input").Op("*").Id(data.Name+"Input"),
+	).Params(jen.Op("*").Id(data.Name+"Output"), jen.Error()).Block(
 		jen.Comment("TODO: Implement handler logic here"),
 		jen.Line(),
-		jen.Return(jen.Id("h").Dot("GenerateResponse").Call(jen.Id(data.Name + "Data").Values()), jen.Nil()),
+		jen.Return(jen.Id("h").Dot("GenerateResponse").Call(jen.Id(data.Name+"Data").Values()), jen.Nil()),
 	)
 
 	return f
@@ -162,7 +162,7 @@ func generateHandlerFile(data HandlerData) *jen.File {
 func generatePayloadStruct(f *jen.File, data HandlerData) {
 	switch data.Method {
 	case "POST":
-		f.Type().Id(data.Name + "Payload").Struct(
+		f.Type().Id(data.Name+"Payload").Struct(
 			jen.Comment("Example POST input"),
 			jen.Id("Name").String().Tag(map[string]string{
 				"json":     "name",
@@ -175,8 +175,8 @@ func generatePayloadStruct(f *jen.File, data HandlerData) {
 			}),
 		)
 	case "PUT", "PATCH":
-		f.Type().Id(data.Name + "Payload").Struct(
-			jen.Comment("Example " + data.Method + " input"),
+		f.Type().Id(data.Name+"Payload").Struct(
+			jen.Comment("Example "+data.Method+" input"),
 			jen.Id("Name").Op("*").String().Tag(map[string]string{
 				"json":    "name",
 				"doc":     "Name of the item",
@@ -222,15 +222,15 @@ func generateInputStruct(f *jen.File, data HandlerData) {
 				"doc":     "ID of the item to update",
 				"example": "123",
 			}),
-			jen.Id("Body").Id(data.Name + "Payload").Tag(map[string]string{
+			jen.Id("Body").Id(data.Name+"Payload").Tag(map[string]string{
 				"json":        "body",
 				"contentType": "application/json",
 			}),
 		)
 	default: // POST and others
 		structFields = append(structFields,
-			jen.Comment("JSON body for " + data.Method),
-			jen.Id("Body").Id(data.Name + "Payload").Tag(map[string]string{
+			jen.Comment("JSON body for "+data.Method),
+			jen.Id("Body").Id(data.Name+"Payload").Tag(map[string]string{
 				"json":        "body",
 				"contentType": "application/json",
 			}),

@@ -1,6 +1,9 @@
 package utils
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 func ToPascalCase(s string) string {
 	words := strings.FieldsFunc(s, func(c rune) bool {
@@ -8,7 +11,7 @@ func ToPascalCase(s string) string {
 	})
 
 	for i, word := range words {
-		words[i] = strings.Title(strings.ToLower(word))
+		words[i] = toTitle(word)
 	}
 
 	return strings.Join(words, "")
@@ -23,4 +26,15 @@ func ToSnakeCase(s string) string {
 		result.WriteRune(r)
 	}
 	return strings.ToLower(result.String())
+}
+
+// toTitle converts the first character to uppercase and the rest to lowercase
+// This replaces the deprecated strings.Title function
+func toTitle(s string) string {
+	if s == "" {
+		return s
+	}
+	r := []rune(strings.ToLower(s))
+	r[0] = unicode.ToUpper(r[0])
+	return string(r)
 }

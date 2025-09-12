@@ -7,8 +7,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbletea"
-	
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/alfariiizi/vandor-cli/internal/theme"
 )
 
@@ -25,8 +25,8 @@ type TaskItem struct {
 
 func (i TaskItem) FilterValue() string { return i.name }
 
-func (i TaskItem) Title() string       { return i.name }
-func (i TaskItem) Description() string { 
+func (i TaskItem) Title() string { return i.name }
+func (i TaskItem) Description() string {
 	if i.description != "" {
 		return i.description
 	}
@@ -49,25 +49,25 @@ type TaskSelector struct {
 
 // TaskPrompt represents the state for prompting task variables
 type TaskPrompt struct {
-	inputs     []textinput.Model
-	focused    int
-	variables  []string
-	values     map[string]string
-	task       *Task
-	quitting   bool
-	submitted  bool
+	inputs    []textinput.Model
+	focused   int
+	variables []string
+	values    map[string]string
+	task      *Task
+	quitting  bool
+	submitted bool
 }
 
 // NewTaskSelector creates a new task selector
 func NewTaskSelector(taskfile *TaskfileSchema) *TaskSelector {
 	items := make([]list.Item, 0, len(taskfile.Tasks))
-	
+
 	for name, task := range taskfile.Tasks {
 		// Skip internal tasks
 		if task.Internal {
 			continue
 		}
-		
+
 		items = append(items, TaskItem{
 			name:        name,
 			description: task.Desc,
@@ -111,7 +111,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		}
 	}
 
-	fmt.Fprint(w, fn(str))
+	if _, err := fmt.Fprint(w, fn(str)); err != nil {
+		// Error writing to output stream - not much we can do here
+		return
+	}
 }
 
 func (m TaskSelector) Init() tea.Cmd {
@@ -151,7 +154,7 @@ func (m TaskSelector) View() string {
 		return styles.Quit.Render(fmt.Sprintf("Running task: %s", m.choice))
 	}
 	if m.quitting {
-		return styles.Quit.Render("Task selection cancelled.")
+		return styles.Quit.Render("Task selection canceled.")
 	}
 	return "\n" + m.list.View()
 }
@@ -159,7 +162,7 @@ func (m TaskSelector) View() string {
 // NewTaskPrompt creates a new task variable prompt
 func NewTaskPrompt(task *Task, variables []string) *TaskPrompt {
 	inputs := make([]textinput.Model, len(variables))
-	
+
 	for i, variable := range variables {
 		t := textinput.New()
 		t.Placeholder = fmt.Sprintf("Enter value for %s", variable)
@@ -251,7 +254,7 @@ func (m TaskPrompt) View() string {
 // RunTaskSelector runs the interactive task selector
 func RunTaskSelector(taskfile *TaskfileSchema) (*Task, string, error) {
 	selector := NewTaskSelector(taskfile)
-	
+
 	p := tea.NewProgram(selector)
 	finalModel, err := p.Run()
 	if err != nil {
@@ -260,7 +263,7 @@ func RunTaskSelector(taskfile *TaskfileSchema) (*Task, string, error) {
 
 	if m, ok := finalModel.(TaskSelector); ok {
 		if m.quitting && m.choice == "" {
-			return nil, "", fmt.Errorf("task selection cancelled")
+			return nil, "", fmt.Errorf("task selection canceled")
 		}
 		return m.selectedTask, m.choice, nil
 	}
@@ -275,7 +278,7 @@ func RunTaskPrompt(task *Task, variables []string) (map[string]string, error) {
 	}
 
 	prompt := NewTaskPrompt(task, variables)
-	
+
 	p := tea.NewProgram(prompt)
 	finalModel, err := p.Run()
 	if err != nil {
@@ -284,7 +287,7 @@ func RunTaskPrompt(task *Task, variables []string) (map[string]string, error) {
 
 	if m, ok := finalModel.(TaskPrompt); ok {
 		if m.quitting && !m.submitted {
-			return nil, fmt.Errorf("variable input cancelled")
+			return nil, fmt.Errorf("variable input canceled")
 		}
 		return m.values, nil
 	}
