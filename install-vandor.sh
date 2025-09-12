@@ -53,6 +53,19 @@ LATEST_RELEASE=$($DOWNLOADER "https://api.github.com/repos/$REPO/releases/latest
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Failed to get release information${NC}"
+    echo -e "${YELLOW}This usually means no releases are available yet.${NC}"
+    echo ""
+    echo -e "${BLUE}📋 Alternative Installation Methods:${NC}"
+    echo ""
+    echo -e "${YELLOW}🔧 Build from Source:${NC}"
+    echo "   git clone https://github.com/$REPO.git"
+    echo "   cd vandor-cli"
+    echo "   go build -o vandor main.go"
+    echo "   sudo mv vandor /usr/local/bin/"
+    echo ""
+    echo -e "${YELLOW}🔄 Or if you have an older version:${NC}"
+    echo "   vandor upgrade source"
+    echo ""
     exit 1
 fi
 

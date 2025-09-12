@@ -19,10 +19,12 @@ curl -fsSL https://raw.githubusercontent.com/alfariiizi/vandor-cli/main/install-
 wget -qO- https://raw.githubusercontent.com/alfariiizi/vandor-cli/main/install-vandor.sh | bash
 ```
 
+> **Note**: If no releases are available yet, the script will provide instructions for building from source.
+
 ### 💾 Manual Download
 
 1. Visit the
-   [releases page](https://github.com/alfariiizi/vandor-cli-cli/releases/latest)
+   [releases page](https://github.com/alfariiizi/vandor-cli/releases/latest)
 2. Download the binary for your platform
 3. Extract and move to PATH:
 
@@ -46,7 +48,7 @@ Move-Item vandor.exe C:\Windows\System32\
 **Requirements:** Go 1.21+
 
 ```bash
-git clone https://github.com/alfariiizi/vandor-cli-cli.git
+git clone https://github.com/alfariiizi/vandor-cli.git
 cd vandor-cli
 go build -o vandor main.go
 sudo mv vandor /usr/local/bin/
@@ -248,6 +250,6 @@ details.
 ## Support
 
 - GitHub Issues:
-  [Report bugs or request features](https://github.com/alfariiizi/vandor-cli-cli/issues)
+  [Report bugs or request features](https://github.com/alfariiizi/vandor-cli/issues)
 - Documentation: [Full documentation](https://docs.vandor.dev)
 - Community: [Discord Server](https://discord.gg/vandor)
