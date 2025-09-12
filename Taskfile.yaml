@@ -1,0 +1,35 @@
+version: '3'
+
+vars:
+  GREETING: Hello World
+
+tasks:
+  build:
+    desc: Build the Vandor CLI
+    cmds:
+      - go build -o vandor main.go
+      
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...
+      
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f vandor
+      - echo "Cleaned build artifacts"
+      
+  hello:
+    desc: Say hello with a custom message
+    vars:
+      MESSAGE: "{{.MESSAGE | default .GREETING}}"
+    cmds:
+      - echo "{{.MESSAGE}}"
+      
+  greet:
+    desc: Greet someone by name
+    cmds:
+      - echo "Hello, {{.NAME}}!"
+    requires:
+      vars: [NAME]

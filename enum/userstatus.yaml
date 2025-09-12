@@ -1,0 +1,5 @@
+type: Userstatus
+description: Description for Userstatus enum
+values:
+  EXAMPLE_VALUE_1: Description for example value 1
+  EXAMPLE_VALUE_2: Description for example value 2
