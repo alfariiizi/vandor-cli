@@ -8,11 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	version = "0.5.0"
-	commit  = "dev"
-	date    = "unknown"
-)
+// Version info is now sourced from build-time variables in root.go
+func getVersionInfo() (string, string, string) {
+	return BuildVersion, BuildCommit, BuildDate
+}
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
@@ -30,12 +29,14 @@ var versionCmd = &cobra.Command{
 }
 
 func showSimpleVersion() {
+	version, commit, date := getVersionInfo()
 	fmt.Printf("Vandor CLI v%s\n", version)
 	fmt.Printf("Commit: %s\n", commit)
 	fmt.Printf("Built: %s\n", date)
 }
 
 func showDetailedVersion() {
+	version, commit, date := getVersionInfo()
 	fmt.Println("🚀 Vandor CLI Version Information")
 	fmt.Println("=================================")
 	fmt.Printf("Version: %s\n", version)

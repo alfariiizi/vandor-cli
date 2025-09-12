@@ -19,8 +19,12 @@ import (
 
 const (
 	GitHubAPIURL = "https://api.github.com/repos/alfariiizi/vandor-cli/releases/latest"
-	CurrentVersion = "0.5.0" // This should match the version in version.go
 )
+
+func getCurrentVersion() string {
+	version, _, _ := getVersionInfo()
+	return version
+}
 
 type GitHubRelease struct {
 	TagName    string `json:"tag_name"`
@@ -102,11 +106,11 @@ func performUpgrade() error {
 	}
 
 	if !hasUpdate {
-		fmt.Printf("✅ You're already running the latest version (%s)!\n", CurrentVersion)
+		fmt.Printf("✅ You're already running the latest version (%s)!\n", getCurrentVersion())
 		return nil
 	}
 
-	fmt.Printf("📦 New version available: %s -> %s\n", CurrentVersion, release.TagName)
+	fmt.Printf("📦 New version available: %s -> %s\n", getCurrentVersion(), release.TagName)
 	fmt.Printf("📅 Released: %s\n", formatDate(release.PublishedAt))
 	
 	if release.Body != "" {
@@ -154,7 +158,7 @@ func performUpgrade() error {
 
 func checkForUpdates(verbose bool) (*GitHubRelease, bool, error) {
 	if verbose {
-		fmt.Printf("🔍 Checking for updates (current version: %s)...\n", CurrentVersion)
+		fmt.Printf("🔍 Checking for updates (current version: %s)...\n", getCurrentVersion())
 	}
 
 	resp, err := http.Get(GitHubAPIURL)
@@ -173,18 +177,18 @@ func checkForUpdates(verbose bool) (*GitHubRelease, bool, error) {
 	}
 
 	// Clean version strings for comparison
-	currentVer := strings.TrimPrefix(CurrentVersion, "v")
+	currentVer := strings.TrimPrefix(getCurrentVersion(), "v")
 	latestVer := strings.TrimPrefix(release.TagName, "v")
 
 	hasUpdate := currentVer != latestVer
 
 	if verbose {
 		if hasUpdate {
-			fmt.Printf("🆕 New version available: %s -> %s\n", CurrentVersion, release.TagName)
+			fmt.Printf("🆕 New version available: %s -> %s\n", getCurrentVersion(), release.TagName)
 			fmt.Printf("📅 Released: %s\n", formatDate(release.PublishedAt))
 			fmt.Println("💡 Run 'vandor upgrade' to install the latest version.")
 		} else {
-			fmt.Printf("✅ You're running the latest version (%s)!\n", CurrentVersion)
+			fmt.Printf("✅ You're running the latest version (%s)!\n", getCurrentVersion())
 		}
 	}
 

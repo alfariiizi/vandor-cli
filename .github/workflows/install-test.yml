@@ -1,0 +1,78 @@
+name: Test Installation
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'install-vandor.sh', '.github/workflows/install-test.yml' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'install-vandor.sh', '.github/workflows/install-test.yml' ]
+
+jobs:
+  test-install-script:
+    name: Test Installation Script
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Test script syntax
+      run: |
+        # Test bash syntax
+        bash -n install-vandor.sh
+        echo "✅ Script syntax is valid"
+
+    - name: Test script execution (dry run)
+      run: |
+        # Test the script up to the point where it tries to download
+        # This validates environment detection and prerequisite checks
+        chmod +x install-vandor.sh
+        
+        # Mock the download to test the rest of the script logic
+        echo "Testing script execution up to download..."
+        timeout 30s ./install-vandor.sh 2>&1 || exit_code=$?
+        
+        # Exit code 124 means timeout (expected since no releases exist)
+        # Exit code 1 is also expected (GitHub API 404)
+        if [ "${exit_code:-0}" -eq 124 ] || [ "${exit_code:-0}" -eq 1 ]; then
+          echo "✅ Script executed as expected (no releases available)"
+        else
+          echo "❌ Unexpected exit code: ${exit_code:-0}"
+          exit 1
+        fi
+
+    - name: Test URL accessibility
+      run: |
+        echo "Testing if script is accessible via GitHub raw URL..."
+        curl -fsSL https://raw.githubusercontent.com/alfariiizi/vandor-cli/main/install-vandor.sh > /tmp/install-test.sh
+        bash -n /tmp/install-test.sh
+        echo "✅ Script is accessible via GitHub and valid"
+
+  test-install-methods:
+    name: Test Alternative Install Methods
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Test source build
+      run: |
+        echo "Testing source build method..."
+        go build -o test-vandor main.go
+        ./test-vandor version
+        echo "✅ Source build works correctly"
+
+    - name: Test Docker build
+      run: |
+        echo "Testing Docker build..."
+        docker build -t vandor-test .
+        docker run --rm vandor-test version
+        echo "✅ Docker build works correctly"

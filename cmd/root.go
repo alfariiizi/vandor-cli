@@ -7,6 +7,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version information set by main package
+var (
+	BuildVersion = "dev"
+	BuildCommit  = "none"
+	BuildDate    = "unknown"
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "vandor",
 	Short: "Vandor CLI - A code generation and package management tool",
@@ -30,4 +37,11 @@ func initConfig() {
 func er(msg interface{}) {
 	fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
 	os.Exit(1)
+}
+
+// SetVersionInfo sets build-time version information
+func SetVersionInfo(version, commit, date string) {
+	BuildVersion = version
+	BuildCommit = commit
+	BuildDate = date
 }
