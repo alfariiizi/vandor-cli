@@ -38,6 +38,21 @@ type TemplateConfig struct {
 	Repositories map[string]string `yaml:"repositories"`
 }
 
+// Dependency represents a required tool with installation instructions
+type Dependency struct {
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	CheckCommand []string `json:"check_command"`
+	InstallCmd   []string `json:"install_command"`
+	ManualURL    string   `json:"manual_url"`
+	Required     bool     `json:"required"`
+}
+
+// ArchitectureDependencies defines dependencies for each architecture type
+type ArchitectureDependencies struct {
+	Dependencies []Dependency `json:"dependencies"`
+}
+
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new Vandor project by cloning GitHub templates",
@@ -125,6 +140,232 @@ func runGoModTidy(dir string) error {
 	return cmd.Run()
 }
 
+// getArchitectureDependencies returns the dependencies for a given architecture
+func getArchitectureDependencies(architecture string) *ArchitectureDependencies {
+	switch architecture {
+	case "full-backend":
+		return &ArchitectureDependencies{
+			Dependencies: []Dependency{
+				{
+					Name:         "air",
+					Description:  "Hot reload tool for Go development",
+					CheckCommand: []string{"air", "--version"},
+					InstallCmd:   []string{"go", "install", "github.com/cosmtrek/air@latest"},
+					ManualURL:    "https://github.com/cosmtrek/air",
+					Required:     true,
+				},
+				{
+					Name:         "atlas",
+					Description:  "Database migration and schema management tool",
+					CheckCommand: []string{"atlas", "version"},
+					InstallCmd:   []string{"go", "install", "ariga.io/atlas/cmd/atlas@latest"},
+					ManualURL:    "https://atlasgo.io/getting-started",
+					Required:     true,
+				},
+			},
+		}
+	case "eda":
+		return &ArchitectureDependencies{
+			Dependencies: []Dependency{
+				{
+					Name:         "air",
+					Description:  "Hot reload tool for Go development",
+					CheckCommand: []string{"air", "--version"},
+					InstallCmd:   []string{"go", "install", "github.com/cosmtrek/air@latest"},
+					ManualURL:    "https://github.com/cosmtrek/air",
+					Required:     false, // Optional for EDA
+				},
+			},
+		}
+	case "minimal":
+		// No specific dependencies for minimal setup
+		return &ArchitectureDependencies{
+			Dependencies: []Dependency{},
+		}
+	default:
+		return &ArchitectureDependencies{
+			Dependencies: []Dependency{},
+		}
+	}
+}
+
+// Example of how to add dependencies for new architectures:
+//
+// case "microservices":
+//     return &ArchitectureDependencies{
+//         Dependencies: []Dependency{
+//             {
+//                 Name:         "docker",
+//                 Description:  "Container runtime for microservices",
+//                 CheckCommand: []string{"docker", "--version"},
+//                 InstallCmd:   []string{"curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"},
+//                 ManualURL:    "https://docs.docker.com/get-docker/",
+//                 Required:     true,
+//             },
+//             {
+//                 Name:         "kubectl",
+//                 Description:  "Kubernetes command-line tool",
+//                 CheckCommand: []string{"kubectl", "version", "--client"},
+//                 InstallCmd:   []string{"go", "install", "k8s.io/kubectl@latest"},
+//                 ManualURL:    "https://kubernetes.io/docs/tasks/tools/install-kubectl/",
+//                 Required:     false,
+//             },
+//         },
+//     }
+
+// checkAndInstallDependencies checks and installs dependencies for the given architecture
+func checkAndInstallDependencies(architecture string) error {
+	styles := theme.GetCurrentStyles()
+	reader := bufio.NewReader(os.Stdin)
+
+	deps := getArchitectureDependencies(architecture)
+
+	// Skip if no dependencies
+	if len(deps.Dependencies) == 0 {
+		fmt.Println(styles.Success.Render("✅ No additional dependencies required for this architecture"))
+		return nil
+	}
+
+	fmt.Println()
+	// Capitalize first letter of architecture
+	archTitle := strings.ToUpper(string(architecture[0])) + architecture[1:]
+	fmt.Println(styles.Title.Render(fmt.Sprintf("🔧 Checking Dependencies for %s Architecture", archTitle)))
+
+	// Build description of what's needed
+	var depNames []string
+	for _, dep := range deps.Dependencies {
+		depNames = append(depNames, fmt.Sprintf("'%s' (%s)", dep.Name, dep.Description))
+	}
+	fmt.Println(styles.Info.Render(fmt.Sprintf("This template requires: %s", strings.Join(depNames, ", "))))
+
+	for _, dep := range deps.Dependencies {
+		if err := checkAndInstallSingleDependency(dep, reader, styles); err != nil {
+			if dep.Required {
+				return err
+			}
+			fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  %s installation skipped (optional)", dep.Name)))
+		}
+	}
+
+	fmt.Println(styles.Success.Render("🎉 All dependencies are ready!"))
+	return nil
+}
+
+// checkAndInstallSingleDependency checks and installs a single dependency
+func checkAndInstallSingleDependency(dep Dependency, reader *bufio.Reader, styles *theme.Styles) error {
+	// Check if dependency is installed
+	installed := isDependencyInstalled(dep.CheckCommand)
+
+	if installed {
+		fmt.Println(styles.Success.Render(fmt.Sprintf("✅ %s is already installed", dep.Name)))
+		return nil
+	}
+
+	requiredText := ""
+	if dep.Required {
+		requiredText = " (required)"
+	} else {
+		requiredText = " (optional)"
+	}
+
+	fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  %s is not installed%s", dep.Name, requiredText)))
+	fmt.Print(styles.Item.Render(fmt.Sprintf("Install %s automatically? [Y/n]: ", dep.Name)))
+
+	choice, _ := reader.ReadString('\n')
+	choice = strings.ToLower(strings.TrimSpace(choice))
+
+	if choice == "" || choice == "y" || choice == "yes" {
+		if err := installDependency(dep); err != nil {
+			fmt.Println(styles.Error.Render(fmt.Sprintf("❌ Failed to install %s: %v", dep.Name, err)))
+			showManualInstallation(dep, styles)
+
+			if dep.Required {
+				return fmt.Errorf("%s installation failed", dep.Name)
+			}
+			return err
+		}
+		fmt.Println(styles.Success.Render(fmt.Sprintf("✅ %s installed successfully!", dep.Name)))
+		return nil
+	}
+
+	// User chose not to auto-install
+	showManualInstallation(dep, styles)
+
+	if dep.Required {
+		fmt.Print(styles.Item.Render(fmt.Sprintf("Continue without %s? [y/N]: ", dep.Name)))
+		continueChoice, _ := reader.ReadString('\n')
+		continueChoice = strings.ToLower(strings.TrimSpace(continueChoice))
+		if continueChoice != "y" && continueChoice != "yes" {
+			return fmt.Errorf("%s is required for %s development", dep.Name, dep.Description)
+		}
+	}
+
+	return nil
+}
+
+// isDependencyInstalled checks if a command-line tool is available using the check command
+func isDependencyInstalled(checkCommand []string) bool {
+	if len(checkCommand) == 0 {
+		return false
+	}
+
+	// Try the specific check command first
+	cmd := exec.Command(checkCommand[0], checkCommand[1:]...)
+	cmd.Stdout = nil // Suppress output
+	cmd.Stderr = nil
+	if err := cmd.Run(); err == nil {
+		return true
+	}
+
+	// Fallback: try with 'which' on Unix-like systems
+	cmd = exec.Command("which", checkCommand[0])
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	if err := cmd.Run(); err == nil {
+		return true
+	}
+
+	// Fallback: try with 'where' on Windows
+	cmd = exec.Command("where", checkCommand[0])
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	if err := cmd.Run(); err == nil {
+		return true
+	}
+
+	return false
+}
+
+// installDependency installs a dependency using its install command
+func installDependency(dep Dependency) error {
+	styles := theme.GetCurrentStyles()
+	fmt.Println(styles.Info.Render(fmt.Sprintf("📦 Installing %s (%s)...", dep.Name, dep.Description)))
+
+	if len(dep.InstallCmd) == 0 {
+		return fmt.Errorf("no install command specified for %s", dep.Name)
+	}
+
+	// Execute the install command
+	cmd := exec.Command(dep.InstallCmd[0], dep.InstallCmd[1:]...)
+	cmd.Stdout = nil // Suppress output
+	cmd.Stderr = nil
+
+	return cmd.Run()
+}
+
+// showManualInstallation shows manual installation instructions for a dependency
+func showManualInstallation(dep Dependency, styles *theme.Styles) {
+	fmt.Println()
+	fmt.Println(styles.Info.Render(fmt.Sprintf("📖 Manual %s Installation:", dep.Name)))
+	if len(dep.InstallCmd) > 0 {
+		fmt.Println(styles.Item.Render(fmt.Sprintf("  %s", strings.Join(dep.InstallCmd, " "))))
+	}
+	if dep.ManualURL != "" {
+		fmt.Println(styles.Item.Render(fmt.Sprintf("  or visit: %s", dep.ManualURL)))
+	}
+	fmt.Println()
+}
+
 // checkGitInstalled checks if git is available
 func checkGitInstalled() error {
 	cmd := exec.Command("git", "--version")
@@ -205,6 +446,12 @@ func initProject() error {
 	}
 
 	fmt.Println(styles.Success.Render(fmt.Sprintf("✅ Selected architecture: %s", config.Vandor.Architecture)))
+
+	// Check dependencies for the selected architecture
+	if err := checkAndInstallDependencies(config.Vandor.Architecture); err != nil {
+		fmt.Println(styles.Error.Render(fmt.Sprintf("❌ Dependency check failed: %v", err)))
+		return err
+	}
 
 	// Ask where to create the project
 	fmt.Println()

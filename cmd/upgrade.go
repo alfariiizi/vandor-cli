@@ -163,6 +163,7 @@ func performUpgrade() error {
 
 	fmt.Printf("✅ Successfully upgraded to Vandor CLI %s!\n", release.TagName)
 	fmt.Println("🎉 Run 'vandor version' to verify the installation.")
+	fmt.Println("Hit enter to exit...")
 
 	return nil
 }
