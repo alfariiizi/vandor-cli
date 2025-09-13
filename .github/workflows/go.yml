@@ -99,20 +99,25 @@ jobs:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
       run: |
+        # Create dist directory
+        mkdir -p dist
+
         # Set binary name with extension for Windows
-        BINARY_NAME="vandor"
+        EXT=""
         if [ "$GOOS" = "windows" ]; then
-          BINARY_NAME="vandor.exe"
+          EXT=".exe"
         fi
-        
+
         # Build with version info
         VERSION=${GITHUB_REF_NAME:-dev}
         COMMIT=${GITHUB_SHA::8}
         BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        
+
+        BINARY_NAME="vandor-${GOOS}-${GOARCH}${EXT}"
+
         go build \
           -ldflags="-X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'main.date=${BUILD_DATE}'" \
-          -o "dist/${BINARY_NAME}-${GOOS}-${GOARCH}${BINARY_NAME##vandor}" \
+          -o "dist/${BINARY_NAME}" \
           main.go
 
     - name: Upload build artifacts
@@ -141,32 +146,46 @@ jobs:
     - name: Prepare release assets
       run: |
         mkdir -p release
-        
+
+        # List what we have for debugging
+        echo "Available artifacts:"
+        ls -la artifacts/ || echo "No artifacts directory"
+        find artifacts/ -name "*" -type f 2>/dev/null || echo "No files found"
+
         # Create archives for each platform
         for artifact in artifacts/vandor-*; do
           if [ -d "$artifact" ]; then
+            echo "Processing artifact: $artifact"
             platform=$(basename "$artifact" | sed 's/vandor-//')
-            
-            # Copy binary to release directory
-            cp "$artifact"/* release/ 2>/dev/null || true
-            
+
+            # Find the binary file
+            binary_file=$(find "$artifact" -name "vandor*" -type f | head -1)
+            if [ -z "$binary_file" ]; then
+              echo "No binary found in $artifact"
+              continue
+            fi
+
+            binary_name=$(basename "$binary_file")
+            echo "Found binary: $binary_name for platform: $platform"
+
+            # Copy binary to release directory with platform suffix
+            cp "$binary_file" "release/${binary_name}"
+
             # Create tar.gz for Unix-like systems
             if [[ "$platform" == *"linux"* ]] || [[ "$platform" == *"darwin"* ]]; then
-              binary_name=$(ls "$artifact"/vandor-* | head -1 | xargs basename)
-              cd "$artifact"
-              tar -czf "../release/vandor-${platform}.tar.gz" "$binary_name"
-              cd ..
+              tar -czf "release/vandor-${platform}.tar.gz" -C "$artifact" "$binary_name"
             fi
-            
+
             # Create zip for Windows
             if [[ "$platform" == *"windows"* ]]; then
-              binary_name=$(ls "$artifact"/vandor-* | head -1 | xargs basename)
-              cd "$artifact"
-              zip "../release/vandor-${platform}.zip" "$binary_name"
-              cd ..
+              (cd "$artifact" && zip "../release/vandor-${platform}.zip" "$binary_name")
             fi
           fi
         done
+
+        # Show what we created
+        echo "Created release assets:"
+        ls -la release/
 
     - name: Generate changelog
       run: |
