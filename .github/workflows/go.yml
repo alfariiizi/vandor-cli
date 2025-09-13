@@ -178,7 +178,9 @@ jobs:
 
             # Create zip for Windows
             if [[ "$platform" == *"windows"* ]]; then
-              (cd "$artifact" && zip "../release/vandor-${platform}.zip" "$binary_name")
+              # Use absolute path for zip creation
+              RELEASE_DIR="$(pwd)/release"
+              (cd "$artifact" && zip "${RELEASE_DIR}/vandor-${platform}.zip" "$binary_name")
             fi
           fi
         done
