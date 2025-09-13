@@ -6,10 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+
+	"github.com/alfariiizi/vandor-cli/internal/theme"
 )
 
 type VandorConfig struct {
@@ -23,7 +26,6 @@ type VandorConfig struct {
 		Architecture string `yaml:"architecture"`
 		Language     string `yaml:"language"`
 	} `yaml:"vandor"`
-	Vpkg []VpkgItem `yaml:"vpkg,omitempty"`
 }
 
 type VpkgItem struct {
@@ -38,8 +40,8 @@ type TemplateConfig struct {
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a new Vandor project",
-	Long:  `Initialize a new Vandor project with configuration and optional project setup.`,
+	Short: "Initialize a new Vandor project by cloning GitHub templates",
+	Long:  `Initialize a new Vandor project by cloning from GitHub templates and customizing it with your project details.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := initProject(); err != nil {
 			er(err)
@@ -62,31 +64,30 @@ func getTemplateRepositories() map[string]string {
 
 // cloneTemplate clones a GitHub repository template
 func cloneTemplate(repoURL, targetDir, projectName string) error {
-	fmt.Printf("📥 Cloning template from %s...\n", repoURL)
+	styles := theme.GetCurrentStyles()
 
 	// Clone the repository
 	cmd := exec.Command("git", "clone", repoURL, targetDir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = nil // Suppress git clone output
+	cmd.Stderr = nil
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to clone template repository: %v", err)
 	}
 
+	fmt.Println(styles.Success.Render("✅ Template cloned successfully!"))
+
 	// Remove .git directory to detach from template repo
 	gitDir := filepath.Join(targetDir, ".git")
 	if err := os.RemoveAll(gitDir); err != nil {
-		fmt.Printf("Warning: Could not remove .git directory: %v\n", err)
+		fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: Could not remove .git directory: %v", err)))
 	}
 
 	// Initialize new git repository
 	if err := initializeGitRepo(targetDir); err != nil {
-		fmt.Printf("Warning: Could not initialize git repository: %v\n", err)
-	}
-
-	// Replace template placeholders with actual project name
-	if err := replaceTemplatePlaceholders(targetDir, projectName); err != nil {
-		fmt.Printf("Warning: Could not replace template placeholders: %v\n", err)
+		fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: Could not initialize git repository: %v", err)))
+	} else {
+		fmt.Println(styles.Success.Render("✅ New git repository initialized!"))
 	}
 
 	return nil
@@ -99,12 +100,29 @@ func initializeGitRepo(dir string) error {
 	return cmd.Run()
 }
 
-// replaceTemplatePlaceholders replaces common template placeholders
-func replaceTemplatePlaceholders(dir, projectName string) error {
-	// This is a simplified implementation - you might want to make this more sophisticated
-	// by walking through files and replacing specific placeholders
-	fmt.Printf("🔄 Customizing template for project '%s'...\n", projectName)
+// createVandorConfig creates the vandor-config.yaml file in the target directory
+func createVandorConfig(targetDir string, config VandorConfig) error {
+	yamlData, err := yaml.Marshal(&config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %v", err)
+	}
+
+	configPath := filepath.Join(targetDir, "vandor-config.yaml")
+	if err := os.WriteFile(configPath, yamlData, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %v", err)
+	}
+
 	return nil
+}
+
+// runGoModTidy runs 'go mod tidy' in the specified directory
+func runGoModTidy(dir string) error {
+	cmd := exec.Command("go", "mod", "tidy")
+	cmd.Dir = dir
+	cmd.Stdout = nil // Suppress output
+	cmd.Stderr = nil
+
+	return cmd.Run()
 }
 
 // checkGitInstalled checks if git is available
@@ -114,30 +132,42 @@ func checkGitInstalled() error {
 }
 
 func initProject() error {
+	styles := theme.GetCurrentStyles()
 	reader := bufio.NewReader(os.Stdin)
 
-	// Check if vandor-config.yaml already exists
-	if _, err := os.Stat("vandor-config.yaml"); err == nil {
-		fmt.Print("vandor-config.yaml already exists. Overwrite? [y/N]: ")
-		response, _ := reader.ReadString('\n')
-		if strings.ToLower(strings.TrimSpace(response)) != "y" {
-			fmt.Println("Initialization canceled.")
-			return nil
-		}
+	// Welcome message
+	fmt.Println(styles.Title.Render("🚀 Vandor Project Initializer"))
+	fmt.Println(styles.Info.Render("Initialize a new Vandor project from GitHub templates"))
+	fmt.Println()
+
+	// Check if git is installed
+	if err := checkGitInstalled(); err != nil {
+		fmt.Println(styles.Error.Render("❌ Git is not installed or not available in PATH"))
+		return fmt.Errorf("git is required for cloning templates")
 	}
 
 	config := VandorConfig{}
 
 	// Get project information
-	fmt.Print("Project name (e.g., my-app): ")
+	fmt.Print(styles.Item.Render("Project name (e.g., my-clinic-app): "))
 	projectName, _ := reader.ReadString('\n')
 	config.Project.Name = strings.TrimSpace(projectName)
 
-	fmt.Print("Go module path (e.g., github.com/your-org/my-app): ")
+	if config.Project.Name == "" {
+		fmt.Println(styles.Error.Render("❌ Project name is required"))
+		return fmt.Errorf("project name cannot be empty")
+	}
+
+	fmt.Print(styles.Item.Render("Go module path (e.g., github.com/your-org/my-clinic-app): "))
 	modulePath, _ := reader.ReadString('\n')
 	config.Project.Module = strings.TrimSpace(modulePath)
 
-	fmt.Print("Project version [0.1.0]: ")
+	if config.Project.Module == "" {
+		fmt.Println(styles.Error.Render("❌ Go module path is required"))
+		return fmt.Errorf("go module path cannot be empty")
+	}
+
+	fmt.Print(styles.Item.Render("Project version [0.1.0]: "))
 	version, _ := reader.ReadString('\n')
 	version = strings.TrimSpace(version)
 	if version == "" {
@@ -145,16 +175,19 @@ func initProject() error {
 	}
 	config.Project.Version = version
 
+	vandorVersion, _, _ := getVersionInfo()
+
 	// Set Vandor CLI version
-	config.Vandor.CLI = "0.5.0"
+	config.Vandor.CLI = vandorVersion
 	config.Vandor.Language = "go"
 
 	// Ask for architecture type
-	fmt.Println("\nSelect architecture type:")
-	fmt.Println("1. full-backend (Complete backend with all features)")
-	fmt.Println("2. eda (Event-driven architecture)")
-	fmt.Println("3. minimal (Minimal setup)")
-	fmt.Print("Choose [1-3]: ")
+	fmt.Println()
+	fmt.Println(styles.Title.Render("🏗️  Select Architecture Type:"))
+	fmt.Println(styles.Item.Render("1. full-backend (Complete backend with all features)"))
+	fmt.Println(styles.Item.Render("2. eda (Event-driven architecture)"))
+	fmt.Println(styles.Item.Render("3. minimal (Minimal setup)"))
+	fmt.Print(styles.SelectedItem.Render("Choose [1-3]: "))
 
 	choice, _ := reader.ReadString('\n')
 	choice = strings.TrimSpace(choice)
@@ -162,81 +195,48 @@ func initProject() error {
 	switch choice {
 	case "1":
 		config.Vandor.Architecture = "full-backend"
-		config.Vpkg = []VpkgItem{
-			{Name: "audit-logger", Version: "1.0.0", Tags: []string{"full-backend", "eda"}},
-			{Name: "redis-cache", Version: "1.2.0", Tags: []string{"full-backend", "eda", "minimal"}},
-		}
 	case "2":
 		config.Vandor.Architecture = "eda"
-		config.Vpkg = []VpkgItem{
-			{Name: "audit-logger", Version: "1.0.0", Tags: []string{"full-backend", "eda"}},
-			{Name: "redis-cache", Version: "1.2.0", Tags: []string{"full-backend", "eda", "minimal"}},
-			{Name: "kafka-bus", Version: "2.0.0", Tags: []string{"eda"}},
-		}
 	case "3":
 		config.Vandor.Architecture = "minimal"
-		config.Vpkg = []VpkgItem{
-			{Name: "redis-cache", Version: "1.2.0", Tags: []string{"full-backend", "eda", "minimal"}},
-		}
 	default:
 		config.Vandor.Architecture = "minimal"
-		config.Vpkg = []VpkgItem{
-			{Name: "redis-cache", Version: "1.2.0", Tags: []string{"full-backend", "eda", "minimal"}},
-		}
+		fmt.Println(styles.Warning.Render("⚠️  No valid choice selected, defaulting to minimal"))
 	}
 
-	// Ask if user wants full project setup
-	fmt.Print("\nDo you want to create a full project setup? [y/N]: ")
-	setupChoice, _ := reader.ReadString('\n')
-	createFullSetup := strings.ToLower(strings.TrimSpace(setupChoice)) == "y"
+	fmt.Println(styles.Success.Render(fmt.Sprintf("✅ Selected architecture: %s", config.Vandor.Architecture)))
 
-	var useGitHubTemplate bool
-	if createFullSetup {
-		fmt.Print("Do you want to use GitHub templates (recommended)? [Y/n]: ")
-		githubChoice, _ := reader.ReadString('\n')
-		useGitHubTemplate = strings.ToLower(strings.TrimSpace(githubChoice)) != "n"
+	// Ask where to create the project
+	fmt.Println()
+	fmt.Println(styles.Title.Render("📁 Project Location:"))
+	fmt.Print(styles.Item.Render(fmt.Sprintf("Create new directory '%s' or use current directory? [new/current]: ", config.Project.Name)))
+	locationChoice, _ := reader.ReadString('\n')
+	locationChoice = strings.ToLower(strings.TrimSpace(locationChoice))
+
+	var targetDir string
+	if locationChoice == "current" || locationChoice == "c" {
+		targetDir = "."
+		fmt.Println(styles.Info.Render("📂 Using current directory"))
+	} else {
+		targetDir = config.Project.Name
+		fmt.Println(styles.Info.Render(fmt.Sprintf("📂 Creating new directory: %s", targetDir)))
 	}
 
-	// Write vandor-config.yaml
-	yamlData, err := yaml.Marshal(&config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %v", err)
+	// Clone the project from GitHub template
+	if err := createProjectFromGitHubTemplate(config, targetDir); err != nil {
+		fmt.Println(styles.Error.Render(fmt.Sprintf("❌ Failed to create project from GitHub template: %v", err)))
+		return err
 	}
 
-	if err := os.WriteFile("vandor-config.yaml", yamlData, 0644); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
-	}
-
-	fmt.Println("\n✅ vandor-config.yaml created successfully!")
-
-	if createFullSetup {
-		if useGitHubTemplate {
-			if err := createProjectFromGitHubTemplate(config); err != nil {
-				fmt.Printf("❌ Failed to create project from GitHub template: %v\n", err)
-				fmt.Println("🔄 Falling back to local template creation...")
-				if err := createFullProjectSetup(config); err != nil {
-					return fmt.Errorf("failed to create project setup: %v", err)
-				}
-			} else {
-				fmt.Println("✅ Project created from GitHub template successfully!")
-			}
-		} else {
-			if err := createFullProjectSetup(config); err != nil {
-				return fmt.Errorf("failed to create full project setup: %v", err)
-			}
-			fmt.Println("✅ Full project setup created successfully!")
-		}
-	}
+	fmt.Println()
+	fmt.Println(styles.Success.Render("🎉 Project created successfully!"))
 
 	return nil
 }
 
 // createProjectFromGitHubTemplate creates a project by cloning from GitHub template
-func createProjectFromGitHubTemplate(config VandorConfig) error {
-	// Check if git is installed
-	if err := checkGitInstalled(); err != nil {
-		return fmt.Errorf("git is not installed or not available in PATH")
-	}
+func createProjectFromGitHubTemplate(config VandorConfig, targetDir string) error {
+	styles := theme.GetCurrentStyles()
 
 	// Get template repositories
 	templates := getTemplateRepositories()
@@ -247,34 +247,9 @@ func createProjectFromGitHubTemplate(config VandorConfig) error {
 		return fmt.Errorf("no template repository configured for architecture: %s", config.Vandor.Architecture)
 	}
 
-	// Check if current directory is empty (except for vandor-config.yaml)
-	files, err := os.ReadDir(".")
-	if err != nil {
-		return fmt.Errorf("failed to read current directory: %v", err)
-	}
-
-	// Count non-hidden files (excluding vandor-config.yaml)
-	nonHiddenFiles := 0
-	for _, file := range files {
-		if !strings.HasPrefix(file.Name(), ".") && file.Name() != "vandor-config.yaml" {
-			nonHiddenFiles++
-		}
-	}
-
-	// If directory is not empty, create project in subdirectory
-	var targetDir string
-	if nonHiddenFiles > 0 {
-		if config.Project.Name == "" {
-			targetDir = "vandor-project"
-		} else {
-			targetDir = config.Project.Name
-		}
-		fmt.Printf("📁 Current directory is not empty. Creating project in '%s/' subdirectory...\n", targetDir)
-	} else {
-		// Clone directly to current directory
-		targetDir = "."
-		fmt.Printf("📁 Creating project in current directory...\n")
-	}
+	fmt.Println()
+	fmt.Println(styles.Info.Render(fmt.Sprintf("📡 Cloning %s template from GitHub...", config.Vandor.Architecture)))
+	fmt.Println(styles.Item.Render(fmt.Sprintf("Repository: %s", repoURL)))
 
 	// Clone the template
 	if targetDir == "." {
@@ -287,30 +262,49 @@ func createProjectFromGitHubTemplate(config VandorConfig) error {
 		// Move files from temp to current directory
 		if err := moveTemplateFiles(tempDir, "."); err != nil {
 			if rmErr := os.RemoveAll(tempDir); rmErr != nil {
-				fmt.Printf("Warning: failed to clean up temp directory: %v\n", rmErr)
+				fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: failed to clean up temp directory: %v", rmErr)))
 			}
 			return fmt.Errorf("failed to move template files: %v", err)
 		}
 
 		// Clean up temp directory
 		if err := os.RemoveAll(tempDir); err != nil {
-			fmt.Printf("Warning: failed to clean up temp directory: %v\n", err)
+			fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: failed to clean up temp directory: %v", err)))
 		}
 	} else {
 		// Clone directly to subdirectory
 		if err := cloneTemplate(repoURL, targetDir, config.Project.Name); err != nil {
 			return err
 		}
-
-		// Move vandor-config.yaml to the project directory
-		if err := os.Rename("vandor-config.yaml", filepath.Join(targetDir, "vandor-config.yaml")); err != nil {
-			fmt.Printf("Warning: Could not move vandor-config.yaml to project directory: %v\n", err)
-		}
 	}
 
 	// Update project files with actual configuration
+	fmt.Println(styles.Info.Render("🔄 Customizing template with your project details..."))
 	if err := updateProjectConfiguration(targetDir, config); err != nil {
-		fmt.Printf("Warning: Could not update project configuration: %v\n", err)
+		fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: Could not update project configuration: %v", err)))
+	}
+
+	// Create/update vandor-config.yaml in the target directory
+	if err := createVandorConfig(targetDir, config); err != nil {
+		fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: Could not create vandor-config.yaml: %v", err)))
+	}
+
+	// Ask if user wants to run go mod tidy
+	fmt.Println()
+	fmt.Print(styles.Item.Render("Run 'go mod tidy' to clean up dependencies? [Y/n]: "))
+	reader := bufio.NewReader(os.Stdin)
+	tidyChoice, _ := reader.ReadString('\n')
+	tidyChoice = strings.ToLower(strings.TrimSpace(tidyChoice))
+
+	if tidyChoice == "" || tidyChoice == "y" || tidyChoice == "yes" {
+		fmt.Println(styles.Info.Render("📦 Running go mod tidy..."))
+		if err := runGoModTidy(targetDir); err != nil {
+			fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: go mod tidy failed: %v", err)))
+		} else {
+			fmt.Println(styles.Success.Render("✅ Dependencies cleaned up successfully!"))
+		}
+	} else {
+		fmt.Println(styles.Info.Render("ℹ️  Skipping go mod tidy - remember to run it later"))
 	}
 
 	return nil
@@ -337,25 +331,101 @@ func moveTemplateFiles(src, dst string) error {
 
 // updateProjectConfiguration updates project files with actual configuration
 func updateProjectConfiguration(projectDir string, config VandorConfig) error {
-	fmt.Printf("🔧 Updating project configuration...\n")
+	styles := theme.GetCurrentStyles()
 
-	// Update go.mod if it exists
-	goModPath := filepath.Join(projectDir, "go.mod")
-	if _, err := os.Stat(goModPath); err == nil {
-		if err := updateGoMod(goModPath, config.Project.Module); err != nil {
-			return fmt.Errorf("failed to update go.mod: %v", err)
-		}
+	// Replace all module names in the entire project
+	if err := replaceModuleNamesInProject(projectDir, config.Project.Module); err != nil {
+		return fmt.Errorf("failed to replace module names: %v", err)
 	}
 
 	// Update README.md if it exists
 	readmePath := filepath.Join(projectDir, "README.md")
 	if _, err := os.Stat(readmePath); err == nil {
 		if err := updateReadme(readmePath, config.Project.Name); err != nil {
-			fmt.Printf("Warning: Could not update README.md: %v\n", err)
+			fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: Could not update README.md: %v", err)))
+		} else {
+			fmt.Println(styles.Success.Render("✅ README.md updated!"))
 		}
 	}
 
 	return nil
+}
+
+// replaceModuleNamesInProject walks through all Go files and replaces module imports
+func replaceModuleNamesInProject(projectDir, newModuleName string) error {
+	styles := theme.GetCurrentStyles()
+
+	// First, find the current module name from go.mod
+	goModPath := filepath.Join(projectDir, "go.mod")
+	oldModuleName, err := extractModuleNameFromGoMod(goModPath)
+	if err != nil {
+		return fmt.Errorf("failed to read current module name: %v", err)
+	}
+
+	if oldModuleName == "" {
+		fmt.Println(styles.Warning.Render("⚠️  Warning: Could not detect current module name"))
+		return nil
+	}
+
+	fmt.Println(styles.Info.Render(fmt.Sprintf("🔄 Replacing module name: %s → %s", oldModuleName, newModuleName)))
+
+	// Update go.mod file
+	if updateErr := updateGoMod(goModPath, newModuleName); updateErr != nil {
+		return fmt.Errorf("failed to update go.mod: %v", updateErr)
+	}
+	fmt.Println(styles.Success.Render("✅ go.mod updated!"))
+
+	// Walk through all .go files and replace import statements
+	fileCount := 0
+	err = filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip hidden directories and files
+		if strings.HasPrefix(info.Name(), ".") {
+			return nil
+		}
+
+		// Only process .go files
+		if !strings.HasSuffix(path, ".go") {
+			return nil
+		}
+
+		// Replace module imports in Go files
+		if err := replaceModuleInGoFile(path, oldModuleName, newModuleName); err != nil {
+			fmt.Println(styles.Warning.Render(fmt.Sprintf("⚠️  Warning: Could not update %s: %v", path, err)))
+		} else {
+			fileCount++
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(styles.Success.Render(fmt.Sprintf("✅ Updated %d Go files with new module name!", fileCount)))
+	return nil
+}
+
+// extractModuleNameFromGoMod extracts the current module name from go.mod
+func extractModuleNameFromGoMod(goModPath string) (string, error) {
+	content, err := os.ReadFile(goModPath)
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module")), nil
+		}
+	}
+
+	return "", fmt.Errorf("module name not found in go.mod")
 }
 
 // updateGoMod updates the go.mod file with the correct module name
@@ -382,6 +452,26 @@ func updateGoMod(goModPath, moduleName string) error {
 	return os.WriteFile(goModPath, []byte(updatedContent), 0644)
 }
 
+// replaceModuleInGoFile replaces module import statements in a Go file
+func replaceModuleInGoFile(filePath, oldModule, newModule string) error {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	// Use regex to replace import statements
+	// This handles both single imports and grouped imports
+	importRegex := regexp.MustCompile(`"` + regexp.QuoteMeta(oldModule) + `([/\w-]*)"`)
+	updatedContent := importRegex.ReplaceAllString(string(content), `"`+newModule+`$1"`)
+
+	// Only write if content changed
+	if updatedContent != string(content) {
+		return os.WriteFile(filePath, []byte(updatedContent), 0644)
+	}
+
+	return nil
+}
+
 // updateReadme updates the README.md file with the correct project name
 func updateReadme(readmePath, projectName string) error {
 	if projectName == "" {
@@ -398,76 +488,4 @@ func updateReadme(readmePath, projectName string) error {
 	updatedContent = strings.ReplaceAll(updatedContent, "PROJECT_NAME", projectName)
 
 	return os.WriteFile(readmePath, []byte(updatedContent), 0644)
-}
-
-func createFullProjectSetup(config VandorConfig) error {
-	// Create basic directory structure
-	dirs := []string{
-		"cmd/app",
-		"internal/core/domain",
-		"internal/core/usecase",
-		"internal/core/service",
-		"internal/core/model",
-		"internal/infrastructure/db",
-		"internal/delivery/http",
-		"internal/vpkg",
-		"config",
-		"database/schema",
-		"scripts",
-	}
-
-	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %v", dir, err)
-		}
-	}
-
-	// Create go.mod if it doesn't exist
-	if _, err := os.Stat("go.mod"); os.IsNotExist(err) {
-		goModContent := fmt.Sprintf("module %s\n\ngo 1.21\n", config.Project.Module)
-		if err := os.WriteFile("go.mod", []byte(goModContent), 0644); err != nil {
-			return fmt.Errorf("failed to create go.mod: %v", err)
-		}
-	}
-
-	// Create basic main.go
-	mainGoPath := filepath.Join("cmd", "app", "main.go")
-	mainGoContent := fmt.Sprintf(`package main
-
-import (
-	"fmt"
-	"log"
-)
-
-func main() {
-	fmt.Println("Starting %s...")
-	log.Println("Application initialized successfully!")
-}
-`, config.Project.Name)
-
-	if err := os.WriteFile(mainGoPath, []byte(mainGoContent), 0644); err != nil {
-		return fmt.Errorf("failed to create main.go: %v", err)
-	}
-
-	// Create basic config file
-	configPath := filepath.Join("config", "config.yaml.example")
-	configContent := `app:
-  name: ` + config.Project.Name + `
-  port: 8080
-  debug: true
-
-database:
-  host: localhost
-  port: 5432
-  name: ` + strings.ReplaceAll(config.Project.Name, "-", "_") + `
-  user: postgres
-  password: postgres
-  ssl_mode: disable
-`
-
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		return fmt.Errorf("failed to create config.yaml.example: %v", err)
-	}
-
-	return nil
 }
