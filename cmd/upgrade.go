@@ -164,6 +164,9 @@ func performUpgrade() error {
 	fmt.Printf("✅ Successfully upgraded to Vandor CLI %s!\n", release.TagName)
 	fmt.Println("🎉 Run 'vandor version' to verify the installation.")
 
+	// Regenerate shell completions if they were installed
+	regenerateCompletions()
+
 	return nil
 }
 
@@ -431,8 +434,7 @@ rm -f "%s"
 
 echo "✅ Binary replacement completed successfully!"
 echo "🎉 Vandor CLI has been upgraded!"
-echo "   Run 'vandor version' to verify the new version."
-echo "Hit enter to exit..."
+echo "   Run 'vandor version' to verify the new version. Hit ENTER..."
 `, currentExe, currentExe, backupPath, newBinaryPath, currentExe, backupPath, backupPath, currentExe, currentExe, backupPath, "$0")
 
 	// Create temporary script file
@@ -553,6 +555,9 @@ func performSourceUpgrade() error {
 	fmt.Println("✅ Successfully upgraded Vandor CLI from source!")
 	fmt.Println("🎉 Run 'vandor version' to verify the installation.")
 
+	// Regenerate shell completions if they were installed
+	regenerateCompletions()
+
 	return nil
 }
 
@@ -573,4 +578,109 @@ func executeCommandInDir(dir, name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// regenerateCompletions attempts to regenerate shell completions if they were previously installed
+func regenerateCompletions() {
+	fmt.Println("\n🔄 Checking for installed shell completions...")
+
+	completionPaths := getCompletionPaths()
+	regenerated := false
+
+	for shell, paths := range completionPaths {
+		for _, path := range paths {
+			if _, err := os.Stat(path); err == nil {
+				fmt.Printf("🔧 Regenerating %s completion at %s...\n", shell, path)
+				if err := regenerateCompletionForShell(shell, path); err != nil {
+					fmt.Printf("⚠️  Warning: Failed to regenerate %s completion: %v\n", shell, err)
+				} else {
+					fmt.Printf("✅ Successfully regenerated %s completion\n", shell)
+					regenerated = true
+				}
+				break // Only regenerate first found path for each shell
+			}
+		}
+	}
+
+	if regenerated {
+		fmt.Println("💡 Shell completions have been updated for the new version!")
+		fmt.Println("   You may need to restart your shell or source your shell config.")
+	} else {
+		fmt.Println("ℹ️  No existing completions found to regenerate.")
+		fmt.Println("   If you use shell completion, run: vandor completion <shell>")
+	}
+}
+
+// getCompletionPaths returns common completion paths for different shells
+func getCompletionPaths() map[string][]string {
+	homeDir, _ := os.UserHomeDir()
+
+	return map[string][]string{
+		"zsh": {
+			filepath.Join(homeDir, ".oh-my-zsh", "completions", "_vandor"),
+			"/usr/local/share/zsh/site-functions/_vandor",
+			"/usr/share/zsh/site-functions/_vandor",
+		},
+		"bash": {
+			filepath.Join(homeDir, ".local", "share", "bash-completion", "completions", "vandor"),
+			"/usr/local/share/bash-completion/completions/vandor",
+			"/usr/share/bash-completion/completions/vandor",
+		},
+		"fish": {
+			filepath.Join(homeDir, ".config", "fish", "completions", "vandor.fish"),
+		},
+	}
+}
+
+// regenerateCompletionForShell generates completion for a specific shell and saves it to the specified path
+func regenerateCompletionForShell(shell, path string) error {
+	// Get current executable path
+	exe, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %v", err)
+	}
+
+	// Create a temporary file for the new completion
+	tempFile, err := os.CreateTemp("", "vandor-completion-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %v", err)
+	}
+	defer func() {
+		_ = tempFile.Close()
+		_ = os.Remove(tempFile.Name())
+	}()
+
+	// Generate completion
+	cmd := exec.Command(exe, "completion", shell)
+	cmd.Stdout = tempFile
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to generate completion: %v", err)
+	}
+
+	// Close temp file before copying
+	if err := tempFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %v", err)
+	}
+
+	// Copy the generated completion to the target location
+	// First try to create the directory if it doesn't exist
+	if dir := filepath.Dir(path); dir != "" {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create completion directory: %v", err)
+		}
+	}
+
+	// Copy the file
+	tempContent, err := os.ReadFile(tempFile.Name())
+	if err != nil {
+		return fmt.Errorf("failed to read temp completion: %v", err)
+	}
+
+	if err := os.WriteFile(path, tempContent, 0644); err != nil {
+		return fmt.Errorf("failed to write completion file: %v", err)
+	}
+
+	return nil
 }
