@@ -52,16 +52,16 @@ func ToGoIdentifier(s string) string {
 	// Remove invalid characters and convert to camelCase
 	reg := regexp.MustCompile("[^a-zA-Z0-9_]")
 	cleaned := reg.ReplaceAllString(s, "")
-	
+
 	// Ensure it starts with a letter or underscore
 	if cleaned == "" {
 		return "pkg"
 	}
-	
+
 	if unicode.IsDigit(rune(cleaned[0])) {
 		cleaned = "_" + cleaned
 	}
-	
+
 	return ToCamelCase(cleaned)
 }
 

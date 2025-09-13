@@ -8,8 +8,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/alfariiizi/vandor-cli/internal/utils"
 	"gopkg.in/yaml.v3"
+
+	"github.com/alfariiizi/vandor-cli/internal/utils"
 )
 
 // Installer handles package installation and removal
@@ -44,7 +45,7 @@ func (i *Installer) Install(packageName string, opts InstallOptions) error {
 		destPath = meta.Destination
 	}
 	if destPath == "" {
-		destPath = fmt.Sprintf("internal/vpkg/%s", strings.Replace(name, "/", "/", -1))
+		destPath = fmt.Sprintf("internal/vpkg/%s", name)
 	}
 
 	// Check if package already exists
@@ -153,16 +154,12 @@ func (i *Installer) installTemplate(packageName, templatePath, destPath string, 
 
 	// Determine output filename (remove .tmpl extension if present)
 	outputName := filepath.Base(templatePath)
-	if strings.HasSuffix(outputName, ".tmpl") {
-		outputName = strings.TrimSuffix(outputName, ".tmpl")
-	}
+	outputName = strings.TrimSuffix(outputName, ".tmpl")
 
 	// Preserve directory structure from templates/
 	relPath := strings.TrimPrefix(templatePath, "templates/")
-	if strings.HasSuffix(relPath, ".tmpl") {
-		relPath = strings.TrimSuffix(relPath, ".tmpl")
-	}
-	
+	relPath = strings.TrimSuffix(relPath, ".tmpl")
+
 	outputPath := filepath.Join(destPath, relPath)
 	outputDir := filepath.Dir(outputPath)
 
@@ -187,7 +184,7 @@ func (i *Installer) installTemplate(packageName, templatePath, destPath string, 
 		if err != nil {
 			return fmt.Errorf("failed to create output file: %w", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		if err := tmpl.Execute(file, ctx); err != nil {
 			return fmt.Errorf("failed to execute template: %w", err)
@@ -215,7 +212,7 @@ func (i *Installer) prepareTemplateContext(packageName string, meta *PackageMeta
 	pkg := parts[1]
 
 	// Sanitize package name for Go identifier
-	packageIdent := utils.ToGoIdentifier(strings.Replace(pkg, "-", "", -1))
+	packageIdent := utils.ToGoIdentifier(strings.ReplaceAll(pkg, "-", ""))
 
 	return TemplateContext{
 		Module:      module,
@@ -235,14 +232,14 @@ func (i *Installer) prepareTemplateContext(packageName string, meta *PackageMeta
 // templateFuncs returns template helper functions
 func templateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"Title":    utils.ToTitle,
-		"Camel":    utils.ToCamelCase,
-		"Snake":    utils.ToSnakeCase,
-		"Kebab":    utils.ToKebabCase,
-		"Upper":    strings.ToUpper,
-		"Lower":    strings.ToLower,
-		"Pascal":   utils.ToPascalCase,
-		"GoIdent":  utils.ToGoIdentifier,
+		"Title":   utils.ToTitle,
+		"Camel":   utils.ToCamelCase,
+		"Snake":   utils.ToSnakeCase,
+		"Kebab":   utils.ToKebabCase,
+		"Upper":   strings.ToUpper,
+		"Lower":   strings.ToLower,
+		"Pascal":  utils.ToPascalCase,
+		"GoIdent": utils.ToGoIdentifier,
 	}
 }
 
@@ -255,7 +252,7 @@ func (i *Installer) packageExists(path string) bool {
 // findInstalledPackage finds the installation path of a package
 func (i *Installer) findInstalledPackage(packageName string) string {
 	// Check default location
-	defaultPath := fmt.Sprintf("internal/vpkg/%s", strings.Replace(packageName, "/", "/", -1))
+	defaultPath := fmt.Sprintf("internal/vpkg/%s", packageName)
 	if i.packageExists(defaultPath) {
 		return defaultPath
 	}
@@ -306,13 +303,13 @@ func (i *Installer) printUsageReceipt(packageName string, meta *PackageMeta, ctx
 	if meta.Type == "fx-module" {
 		fmt.Printf("📦 Import the package:\n")
 		fmt.Printf("   import %s \"%s/%s\"\n\n", ctx.Package, ctx.Module, ctx.PackagePath)
-		
+
 		fmt.Printf("🔧 Wire into Fx application:\n")
 		fmt.Printf("   app := fx.New(\n")
 		fmt.Printf("       %s.Module,\n", ctx.Package)
 		fmt.Printf("       // ... other modules\n")
 		fmt.Printf("   )\n\n")
-		
+
 		if len(meta.Dependencies) > 0 {
 			fmt.Printf("📋 Dependencies to add:\n")
 			for _, dep := range meta.Dependencies {
@@ -323,7 +320,7 @@ func (i *Installer) printUsageReceipt(packageName string, meta *PackageMeta, ctx
 	} else if meta.Type == "cli-command" {
 		fmt.Printf("🚀 Run as CLI command:\n")
 		fmt.Printf("   vandor vpkg exec %s [args]\n\n", packageName)
-		
+
 		fmt.Printf("🔧 Or embed in your application:\n")
 		fmt.Printf("   import %s \"%s/%s\"\n", ctx.Package, ctx.Module, ctx.PackagePath)
 		fmt.Printf("   // Use %s.Command() to get Cobra command\n\n", ctx.Package)

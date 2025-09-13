@@ -4,10 +4,10 @@ import "time"
 
 // Registry represents the main registry index
 type Registry struct {
-	Version     string     `yaml:"version"`
-	RegistryURL string     `yaml:"registry_url"`
-	Packages    []Package  `yaml:"packages"`
-	Tags        []Tag      `yaml:"tags"`
+	Version     string    `yaml:"version"`
+	RegistryURL string    `yaml:"registry_url"`
+	Packages    []Package `yaml:"packages"`
+	Tags        []Tag     `yaml:"tags"`
 }
 
 // Package represents a package in the registry
@@ -48,11 +48,11 @@ type PackageMeta struct {
 
 // InstalledPackage represents a locally installed package
 type InstalledPackage struct {
-	Name        string    `yaml:"name"`
-	Version     string    `yaml:"version"`
-	InstalledAt time.Time `yaml:"installed_at"`
-	Path        string    `yaml:"path"`
-	Type        string    `yaml:"type"`
+	Name        string      `yaml:"name"`
+	Version     string      `yaml:"version"`
+	InstalledAt time.Time   `yaml:"installed_at"`
+	Path        string      `yaml:"path"`
+	Type        string      `yaml:"type"`
 	Meta        PackageMeta `yaml:"meta"`
 }
 
@@ -73,11 +73,11 @@ type TemplateContext struct {
 
 // InstallOptions holds options for package installation
 type InstallOptions struct {
-	Registry   string
-	Dest       string
-	Force      bool
-	DryRun     bool
-	Version    string
+	Registry string
+	Dest     string
+	Force    bool
+	DryRun   bool
+	Version  string
 }
 
 // ListOptions holds options for listing packages

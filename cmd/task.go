@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alfariiizi/vandor-cli/internal/taskfile"
 	"github.com/spf13/cobra"
+
+	"github.com/alfariiizi/vandor-cli/internal/taskfile"
 )
 
 var taskCmd = &cobra.Command{

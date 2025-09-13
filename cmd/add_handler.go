@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alfariiizi/vandor-cli/internal/generators"
 	"github.com/alfariiizi/vandor-cli/internal/utils"
-	"github.com/spf13/cobra"
 )
 
 var addHandlerCmd = &cobra.Command{

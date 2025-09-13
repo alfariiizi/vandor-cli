@@ -340,10 +340,10 @@ func extractTarGz(srcPath string) (string, error) {
 				return "", err
 			}
 			defer func() {
-		if closeErr := tempFile.Close(); closeErr != nil {
-			fmt.Printf("Warning: failed to close temp file: %v\n", closeErr)
-		}
-	}()
+				if closeErr := tempFile.Close(); closeErr != nil {
+					fmt.Printf("Warning: failed to close temp file: %v\n", closeErr)
+				}
+			}()
 
 			_, err = io.Copy(tempFile, tarReader)
 			if err != nil {

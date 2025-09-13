@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alfariiizi/vandor-cli/internal/generators"
 	"github.com/spf13/cobra"
+
+	"github.com/alfariiizi/vandor-cli/internal/generators"
 )
 
 var addServiceCmd = &cobra.Command{

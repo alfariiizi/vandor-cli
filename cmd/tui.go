@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/alfariiizi/vandor-cli/internal/tui"
 	"github.com/spf13/cobra"
+
+	"github.com/alfariiizi/vandor-cli/internal/tui"
 )
 
 var tuiCmd = &cobra.Command{

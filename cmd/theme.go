@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alfariiizi/vandor-cli/internal/theme"
 	"github.com/spf13/cobra"
+
+	"github.com/alfariiizi/vandor-cli/internal/theme"
 )
 
 var themeCmd = &cobra.Command{

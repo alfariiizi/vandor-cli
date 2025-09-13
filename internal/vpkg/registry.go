@@ -25,7 +25,7 @@ func NewRegistryClient(registryURL string) *RegistryClient {
 	if registryURL == "" {
 		registryURL = DefaultRegistryURL
 	}
-	
+
 	return &RegistryClient{
 		registryURL: registryURL,
 		httpClient: &http.Client{
@@ -40,7 +40,7 @@ func (r *RegistryClient) FetchRegistry() (*Registry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch registry: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("registry request failed with status %d", resp.StatusCode)
@@ -83,15 +83,15 @@ func (r *RegistryClient) FetchPackageMeta(packageName string) (*PackageMeta, err
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid package name format: %s (expected namespace/name)", packageName)
 	}
-	
+
 	baseURL := strings.Replace(r.registryURL, "/registry.yaml", "", 1)
 	metaURL := fmt.Sprintf("%s/packages/%s/%s/meta.yaml", baseURL, parts[0], parts[1])
-	
+
 	resp, err := r.httpClient.Get(metaURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch package meta: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("package meta request failed with status %d", resp.StatusCode)
@@ -116,15 +116,15 @@ func (r *RegistryClient) FetchPackageFile(packageName, filePath string) ([]byte,
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid package name format: %s", packageName)
 	}
-	
+
 	baseURL := strings.Replace(r.registryURL, "/registry.yaml", "", 1)
 	fileURL := fmt.Sprintf("%s/packages/%s/%s/%s", baseURL, parts[0], parts[1], filePath)
-	
+
 	resp, err := r.httpClient.Get(fileURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch file %s: %w", filePath, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("file request failed with status %d: %s", resp.StatusCode, fileURL)

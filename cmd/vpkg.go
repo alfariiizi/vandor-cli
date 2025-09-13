@@ -8,8 +8,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/alfariiizi/vandor-cli/internal/vpkg"
 	"github.com/spf13/cobra"
+
+	"github.com/alfariiizi/vandor-cli/internal/vpkg"
 )
 
 var vpkgCmd = &cobra.Command{
@@ -39,13 +40,13 @@ var vpkgListCmd = &cobra.Command{
 	Long:  `List all available packages from the Vandor package registry.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		client := vpkg.NewRegistryClient(vpkgRegistry)
-		
+
 		opts := vpkg.ListOptions{
 			Registry: vpkgRegistry,
 			Tags:     vpkgTags,
 			Type:     vpkgType,
 		}
-		
+
 		packages, err := client.ListPackages(opts)
 		if err != nil {
 			er(fmt.Sprintf("Failed to list packages: %v", err))
@@ -57,14 +58,14 @@ var vpkgListCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tTYPE\tVERSION\tDESCRIPTION")
-		fmt.Fprintln(w, "----\t----\t-------\t-----------")
-		
+		_, _ = fmt.Fprintln(w, "NAME\tTYPE\tVERSION\tDESCRIPTION")
+		_, _ = fmt.Fprintln(w, "----\t----\t-------\t-----------")
+
 		for _, pkg := range packages {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", 
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
 				pkg.Name, pkg.Type, pkg.Version, truncate(pkg.Description, 50))
 		}
-		w.Flush()
+		_ = w.Flush()
 
 		fmt.Printf("\nFound %d package(s)\n", len(packages))
 		if len(vpkgTags) > 0 || vpkgType != "" {
@@ -128,7 +129,7 @@ var vpkgRemoveCmd = &cobra.Command{
 		packageName := args[0]
 
 		installer := vpkg.NewInstaller(vpkgRegistry)
-		
+
 		fmt.Printf("Removing package: %s\n", packageName)
 		if vpkgBackup {
 			fmt.Println("Creating backup before removal...")
@@ -158,15 +159,15 @@ var vpkgListInstalledCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tTYPE\tVERSION\tPATH\tINSTALLED")
-		fmt.Fprintln(w, "----\t----\t-------\t----\t---------")
-		
+		_, _ = fmt.Fprintln(w, "NAME\tTYPE\tVERSION\tPATH\tINSTALLED")
+		_, _ = fmt.Fprintln(w, "----\t----\t-------\t----\t---------")
+
 		for _, pkg := range packages {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", 
-				pkg.Name, pkg.Type, pkg.Version, pkg.Path, 
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+				pkg.Name, pkg.Type, pkg.Version, pkg.Path,
 				pkg.InstalledAt.Format("2006-01-02 15:04"))
 		}
-		w.Flush()
+		_ = w.Flush()
 
 		fmt.Printf("\nTotal: %d package(s) installed\n", len(packages))
 	},
@@ -223,7 +224,7 @@ Examples:
 
 		// Execute the package
 		fmt.Printf("Executing %s with args: %v\n", packageName, packageArgs)
-		
+
 		cmdArgs := append([]string{"run", entryPath}, packageArgs...)
 		execCmd := exec.Command("go", cmdArgs...)
 		execCmd.Stdout = os.Stdout
