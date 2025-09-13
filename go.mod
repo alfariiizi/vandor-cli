@@ -1,6 +1,6 @@
 module github.com/alfariiizi/vandor-cli
 
-go 1.24
+go 1.23
 
 require (
 	entgo.io/ent v0.14.5
