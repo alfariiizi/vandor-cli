@@ -168,12 +168,6 @@ func generateDomainRegistryFile(domains []DomainInfo, outputPath string) error {
 	f.Type().Id("Domain").Struct(domainFields...)
 
 	// Generate NewDomain constructor
-	constructorBody := []jen.Code{}
-	for _, domain := range domains {
-		constructorBody = append(constructorBody,
-			jen.Id(domain.Name).Op(":").Qual("domain", "New"+domain.Name+"Domain").Call(jen.Id("client")),
-		)
-	}
 
 	f.Func().Id("NewDomain").Params(
 		jen.Id("client").Op("*").Qual("db", "Client"),

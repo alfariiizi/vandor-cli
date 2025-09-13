@@ -31,7 +31,8 @@ linters:
     - misspell
     - nolintlint
     - gocritic
-    - revive
+  disable:
+    - revive # Disable style linter for CI
 
 issues:
   exclude-rules:

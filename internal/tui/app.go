@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/alfariiizi/vandor-cli/internal/theme"
@@ -54,7 +53,6 @@ type model struct {
 	choice   string
 	quitting bool
 	screen   string // "main", "add", "generate", "vpkg"
-	input    textinput.Model
 }
 
 func (m model) Init() tea.Cmd {

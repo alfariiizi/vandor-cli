@@ -71,11 +71,11 @@ fi
 echo
 
 # 5. Run critical linting (CI-friendly)
-echo "🔍 Running critical linting checks..."
-if golangci-lint run --disable=revive,unused-parameter --timeout=5m; then
-    print_status "Critical linting passed"
+echo "🔍 Running linting checks..."
+if golangci-lint run --timeout=5m; then
+    print_status "Linting passed"
 else
-    print_error "Critical linting failed! Run './fix-lint.sh' to fix automatically."
+    print_error "Linting failed! Run './fix-lint.sh' to fix automatically."
     exit 1
 fi
 echo

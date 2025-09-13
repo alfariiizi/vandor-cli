@@ -9,8 +9,8 @@ gofmt -w .
 echo "📝 Running goimports..."
 goimports -w .
 
-echo "🧹 Running golangci-lint with auto-fix for critical errors..."
-golangci-lint run --fix --disable=revive,unused-parameter --timeout=5m
+echo "🧹 Running golangci-lint with auto-fix..."
+golangci-lint run --fix --timeout=5m
 
 echo "✅ Linting fixes complete!"
 
