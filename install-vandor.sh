@@ -1,163 +1,150 @@
 #!/bin/bash
-# Vandor CLI Installation Script
-# This script downloads and installs the latest version of Vandor CLI
-
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Vandor CLI Installer
+echo "🚀 Vandor CLI Installer"
+echo "========================="
+echo
 
-# Configuration
-REPO="alfariiizi/vandor-cli"
-INSTALL_DIR="/usr/local/bin"
-BINARY_NAME="vandor"
-
-# Detect OS and architecture
+# Detect OS
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
-
-case $ARCH in
-    x86_64) ARCH="amd64" ;;
-    aarch64) ARCH="arm64" ;;
-    armv7l) ARCH="arm" ;;
-    i386|i686) ARCH="386" ;;
-esac
-
 case $OS in
-    darwin) OS="darwin" ;;
-    linux) OS="linux" ;;
-    *) echo -e "${RED}Unsupported OS: $OS${NC}"; exit 1 ;;
+    linux*)     OS="linux";;
+    darwin*)    OS="darwin";;
+    msys*|cygwin*|mingw*) OS="windows";;
+    *)          echo "❌ Unsupported operating system: $OS"; exit 1;;
 esac
 
-echo -e "${BLUE}🚀 Vandor CLI Installer${NC}"
-echo -e "${BLUE}=========================${NC}"
-echo ""
+# Detect Architecture
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64|amd64)   ARCH="amd64";;
+    aarch64|arm64)  ARCH="arm64";;
+    armv7l)         ARCH="arm";;
+    i386|i686)      ARCH="386";;
+    *)              echo "❌ Unsupported architecture: $ARCH"; exit 1;;
+esac
 
-# Check if curl or wget is available
-if command -v curl >/dev/null 2>&1; then
-    DOWNLOADER="curl -fsSL"
-elif command -v wget >/dev/null 2>&1; then
-    DOWNLOADER="wget -qO-"
-else
-    echo -e "${RED}Error: curl or wget is required${NC}"
-    exit 1
-fi
+echo "🔍 Getting latest release information..."
 
-# Get latest release info
-echo -e "${YELLOW}🔍 Getting latest release information...${NC}"
-LATEST_RELEASE=$($DOWNLOADER "https://api.github.com/repos/$REPO/releases/latest")
+# Get latest release info from GitHub API
+LATEST_RELEASE=$(curl -s "https://api.github.com/repos/alfariiizi/vandor-cli/releases/latest")
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}Failed to get release information${NC}"
-    echo -e "${YELLOW}This usually means no releases are available yet.${NC}"
-    echo ""
-    echo -e "${BLUE}📋 Alternative Installation Methods:${NC}"
-    echo ""
-    echo -e "${YELLOW}🔧 Build from Source:${NC}"
-    echo "   git clone https://github.com/$REPO.git"
-    echo "   cd vandor-cli"
-    echo "   go build -o vandor main.go"
-    echo "   sudo mv vandor /usr/local/bin/"
-    echo ""
-    echo -e "${YELLOW}🔄 Or if you have an older version:${NC}"
-    echo "   vandor upgrade source"
-    echo ""
+    echo "❌ Failed to fetch release information"
     exit 1
 fi
 
-# Extract version and download URL
-VERSION=$(echo "$LATEST_RELEASE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-DOWNLOAD_URL=""
+VERSION=$(echo "$LATEST_RELEASE" | grep '"tag_name"' | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
 
-# Look for the appropriate asset
-if echo "$LATEST_RELEASE" | grep -q "vandor-$OS-$ARCH"; then
-    DOWNLOAD_URL=$(echo "$LATEST_RELEASE" | grep "browser_download_url.*vandor-$OS-$ARCH" | sed -E 's/.*"([^"]+)".*/\1/')
-elif echo "$LATEST_RELEASE" | grep -q "vandor.*$OS.*$ARCH"; then
-    DOWNLOAD_URL=$(echo "$LATEST_RELEASE" | grep "browser_download_url.*vandor.*$OS.*$ARCH" | sed -E 's/.*"([^"]+)".*/\1/' | head -1)
+if [ -z "$VERSION" ]; then
+    echo "❌ Could not determine latest version"
+    exit 1
 fi
+
+echo "✅ Found Vandor CLI $VERSION for $OS/$ARCH"
+
+# Determine preferred file extensions and patterns
+if [ "$OS" = "windows" ]; then
+    PREFERRED_PATTERNS=(
+        "vandor-$OS-$ARCH\.zip"
+        "vandor-$OS-$ARCH\.exe"
+    )
+else
+    PREFERRED_PATTERNS=(
+        "vandor-$OS-$ARCH\.tar\.gz"
+        "vandor-$OS-$ARCH"
+    )
+fi
+
+# Find the best matching download URL
+DOWNLOAD_URL=""
+for pattern in "${PREFERRED_PATTERNS[@]}"; do
+    DOWNLOAD_URL=$(echo "$LATEST_RELEASE" | grep -o '"browser_download_url": *"[^"]*"' | grep -E "/$pattern\"" | sed 's/"browser_download_url": *"//;s/"//' | head -1)
+    if [ -n "$DOWNLOAD_URL" ]; then
+        echo "📦 Download URL: $DOWNLOAD_URL"
+        break
+    fi
+done
 
 if [ -z "$DOWNLOAD_URL" ]; then
-    echo -e "${RED}No compatible binary found for $OS/$ARCH${NC}"
-    echo -e "${YELLOW}Available assets:${NC}"
-    echo "$LATEST_RELEASE" | grep "browser_download_url" | sed -E 's/.*"([^"]+)".*/\1/'
+    echo "❌ No compatible binary found for $OS/$ARCH"
+    echo "Available assets:"
+    echo "$LATEST_RELEASE" | grep '"name"' | sed 's/.*"name": *"\([^"]*\)".*/\1/' | sed 's/^/  /'
     exit 1
 fi
 
-echo -e "${GREEN}✅ Found Vandor CLI $VERSION for $OS/$ARCH${NC}"
-echo -e "${YELLOW}📦 Download URL: $DOWNLOAD_URL${NC}"
+# Determine installation directory
+INSTALL_DIR="/usr/local/bin"
+if [ ! -w "$INSTALL_DIR" ]; then
+    INSTALL_DIR="$HOME/.local/bin"
+    mkdir -p "$INSTALL_DIR"
+fi
 
-# Create temporary directory
-TMP_DIR=$(mktemp -d)
-trap "rm -rf $TMP_DIR" EXIT
-
-# Download
-echo -e "${YELLOW}⬇️  Downloading...${NC}"
-BINARY_FILE="$TMP_DIR/$BINARY_NAME"
+# Download and install
+echo "⬇️  Downloading..."
+TEMP_DIR=$(mktemp -d)
+FILENAME=$(basename "$DOWNLOAD_URL")
 
 if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$DOWNLOAD_URL" -o "$BINARY_FILE"
+    curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/$FILENAME"
+elif command -v wget >/dev/null 2>&1; then
+    wget -q "$DOWNLOAD_URL" -O "$TEMP_DIR/$FILENAME"
 else
-    wget -q "$DOWNLOAD_URL" -O "$BINARY_FILE"
-fi
-
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Download failed${NC}"
+    echo "❌ Neither curl nor wget is available"
     exit 1
 fi
 
-# Extract if it's a tar.gz
-if [[ "$DOWNLOAD_URL" == *.tar.gz ]]; then
-    echo -e "${YELLOW}📂 Extracting archive...${NC}"
-    cd "$TMP_DIR"
-    tar -xzf "$BINARY_NAME"
-    # Find the vandor binary in extracted files
-    BINARY_FILE=$(find . -name "vandor" -o -name "vandor.exe" | head -1)
-    if [ -z "$BINARY_FILE" ]; then
-        echo -e "${RED}Binary not found in archive${NC}"
-        exit 1
-    fi
-    BINARY_FILE="$TMP_DIR/$BINARY_FILE"
-fi
+echo "📦 Installing..."
+
+# Extract and install based on file type
+cd "$TEMP_DIR"
+case "$FILENAME" in
+    *.tar.gz)
+        tar -xzf "$FILENAME"
+        BINARY_NAME=$(tar -tzf "$FILENAME" | head -1)
+        mv "$BINARY_NAME" "$INSTALL_DIR/vandor"
+        ;;
+    *.zip)
+        unzip -q "$FILENAME"
+        BINARY_NAME=$(unzip -l "$FILENAME" | tail -n +4 | head -1 | awk '{print $4}')
+        mv "$BINARY_NAME" "$INSTALL_DIR/vandor"
+        ;;
+    *.exe)
+        mv "$FILENAME" "$INSTALL_DIR/vandor.exe"
+        ;;
+    *)
+        mv "$FILENAME" "$INSTALL_DIR/vandor"
+        ;;
+esac
 
 # Make executable
-chmod +x "$BINARY_FILE"
+chmod +x "$INSTALL_DIR/vandor"* 2>/dev/null || true
 
-# Test the binary
-echo -e "${YELLOW}🧪 Testing binary...${NC}"
-if ! "$BINARY_FILE" version >/dev/null 2>&1; then
-    echo -e "${RED}Downloaded binary is not working${NC}"
-    exit 1
+# Clean up
+rm -rf "$TEMP_DIR"
+
+echo "✅ Vandor CLI installed successfully!"
+echo
+echo "📍 Installation location: $INSTALL_DIR/vandor"
+
+# Check if install directory is in PATH
+if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
+    echo "⚠️  Warning: $INSTALL_DIR is not in your PATH"
+    echo "   Add the following line to your ~/.bashrc, ~/.zshrc, or ~/.profile:"
+    echo "   export PATH=\"$INSTALL_DIR:\$PATH\""
+    echo
 fi
 
-# Install
-echo -e "${YELLOW}📥 Installing to $INSTALL_DIR...${NC}"
-
-# Check if we need sudo
-if [ ! -w "$INSTALL_DIR" ]; then
-    echo -e "${YELLOW}🔐 Sudo access required for installation${NC}"
-    sudo cp "$BINARY_FILE" "$INSTALL_DIR/$BINARY_NAME"
-    sudo chmod +x "$INSTALL_DIR/$BINARY_NAME"
+# Test installation
+if command -v vandor >/dev/null 2>&1; then
+    echo "🎉 Installation verified!"
+    vandor --version
 else
-    cp "$BINARY_FILE" "$INSTALL_DIR/$BINARY_NAME"
+    echo "⚠️  Installation complete, but 'vandor' command not found in PATH"
+    echo "   You may need to restart your shell or add $INSTALL_DIR to your PATH"
 fi
 
-if [ $? -eq 0 ]; then
-    echo ""
-    echo -e "${GREEN}✅ Vandor CLI $VERSION installed successfully!${NC}"
-    echo ""
-    echo -e "${BLUE}🎉 Quick Start:${NC}"
-    echo -e "   ${YELLOW}vandor --help${NC}     # Show all commands"
-    echo -e "   ${YELLOW}vandor init${NC}       # Initialize a new project"  
-    echo -e "   ${YELLOW}vandor tui${NC}        # Launch interactive TUI"
-    echo -e "   ${YELLOW}vandor upgrade${NC}    # Update to latest version"
-    echo ""
-    echo -e "${BLUE}📚 Documentation: https://github.com/$REPO${NC}"
-    echo ""
-else
-    echo -e "${RED}Installation failed${NC}"
-    exit 1
-fi
+echo
+echo "🚀 Get started with: vandor --help"
+echo "📖 Documentation: https://github.com/alfariiizi/vandor-cli"
