@@ -655,20 +655,20 @@ func regenerateCompletionForShell(shell, path string) error {
 	cmd.Stdout = tempFile
 	cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to generate completion: %v", err)
+	if errRun := cmd.Run(); errRun != nil {
+		return fmt.Errorf("failed to generate completion: %v", errRun)
 	}
 
 	// Close temp file before copying
-	if err := tempFile.Close(); err != nil {
-		return fmt.Errorf("failed to close temp file: %v", err)
+	if errRun := tempFile.Close(); errRun != nil {
+		return fmt.Errorf("failed to close temp file: %v", errRun)
 	}
 
 	// Copy the generated completion to the target location
 	// First try to create the directory if it doesn't exist
 	if dir := filepath.Dir(path); dir != "" {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create completion directory: %v", err)
+		if errMkdir := os.MkdirAll(dir, 0755); errMkdir != nil {
+			return fmt.Errorf("failed to create completion directory: %v", errMkdir)
 		}
 	}
 
