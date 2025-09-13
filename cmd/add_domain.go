@@ -6,15 +6,24 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/alfariiizi/vandor-cli/internal/command"
+	"github.com/alfariiizi/vandor-cli/internal/tui"
 )
 
 var addDomainCmd = &cobra.Command{
 	Use:   "domain [name]",
 	Short: "Create a new domain",
-	Long:  `Create a new domain and regenerate domain code.`,
-	Args:  cobra.ExactArgs(1),
+	Long:  `Create a new domain and regenerate domain code. If no name is provided, opens TUI for interactive input.`,
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// Use unified command system
+		// If no arguments provided, launch TUI for this specific command
+		if len(args) == 0 {
+			if err := tui.LaunchDirectCommand("add", "domain"); err != nil {
+				er(fmt.Sprintf("Failed to launch TUI: %v", err))
+			}
+			return
+		}
+
+		// Use unified command system for direct execution
 		registry := command.GetGlobalRegistry()
 		unifiedCmd, exists := registry.Get("add", "domain")
 		if !exists {

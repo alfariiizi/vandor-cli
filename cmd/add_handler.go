@@ -7,15 +7,29 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/alfariiizi/vandor-cli/internal/generators"
+	"github.com/alfariiizi/vandor-cli/internal/tui"
 	"github.com/alfariiizi/vandor-cli/internal/utils"
 )
 
 var addHandlerCmd = &cobra.Command{
 	Use:   "handler [group] [name] [method]",
 	Short: "Create a new HTTP handler",
-	Long:  `Create a new HTTP handler with the specified group, name, and HTTP method.`,
-	Args:  cobra.ExactArgs(3),
+	Long:  `Create a new HTTP handler with the specified group, name, and HTTP method. If no arguments are provided, opens TUI for interactive input.`,
+	Args:  cobra.MaximumNArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
+		// If no arguments provided, launch TUI for this specific command
+		if len(args) == 0 {
+			if err := tui.LaunchDirectCommand("add", "handler"); err != nil {
+				er(fmt.Sprintf("Failed to launch TUI: %v", err))
+			}
+			return
+		}
+
+		// If not enough args provided, show error
+		if len(args) < 3 {
+			er("Group, name, and method are required. Usage: vandor add handler <group> <name> <method>")
+		}
+
 		group := args[0]
 		name := args[1]
 		method := strings.ToUpper(args[2])
@@ -40,9 +54,17 @@ var addHandlerCmd = &cobra.Command{
 var addHandlerCrudCmd = &cobra.Command{
 	Use:   "handler-crud [model]",
 	Short: "Generate CRUD HTTP handlers for a model",
-	Long:  `Generate CRUD (Create, Read, Update, Delete) HTTP handlers for the specified model.`,
-	Args:  cobra.ExactArgs(1),
+	Long:  `Generate CRUD (Create, Read, Update, Delete) HTTP handlers for the specified model. If no model is provided, opens TUI for interactive input.`,
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		// If no arguments provided, launch TUI for this specific command
+		if len(args) == 0 {
+			if err := tui.LaunchDirectCommand("add", "handler-crud"); err != nil {
+				er(fmt.Sprintf("Failed to launch TUI: %v", err))
+			}
+			return
+		}
+
 		model := args[0]
 		modelTitle := utils.ToPascalCase(model)
 
@@ -66,9 +88,22 @@ var addHandlerCrudCmd = &cobra.Command{
 var addServiceHandlerCmd = &cobra.Command{
 	Use:   "service-handler [group] [name] [method]",
 	Short: "Create a new service and HTTP handler together",
-	Long:  `Create both a service and its corresponding HTTP handler with the specified group, name, and HTTP method.`,
-	Args:  cobra.ExactArgs(3),
+	Long:  `Create both a service and its corresponding HTTP handler with the specified group, name, and HTTP method. If no arguments are provided, opens TUI for interactive input.`,
+	Args:  cobra.MaximumNArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
+		// If no arguments provided, launch TUI for this specific command
+		if len(args) == 0 {
+			if err := tui.LaunchDirectCommand("add", "service-handler"); err != nil {
+				er(fmt.Sprintf("Failed to launch TUI: %v", err))
+			}
+			return
+		}
+
+		// If not enough args provided, show error
+		if len(args) < 3 {
+			er("Group, name, and method are required. Usage: vandor add service-handler <group> <name> <method>")
+		}
+
 		group := args[0]
 		name := args[1]
 		method := strings.ToUpper(args[2])

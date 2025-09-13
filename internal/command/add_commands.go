@@ -114,14 +114,15 @@ func NewAddServiceCommand() *AddServiceCommand {
 }
 
 func (c *AddServiceCommand) Execute(ctx *CommandContext) error {
-	if len(ctx.Args) < 1 {
-		return fmt.Errorf("service name is required")
+	if len(ctx.Args) < 2 {
+		return fmt.Errorf("service group and name are required")
 	}
 
-	name := ctx.Args[0]
-	_, _ = fmt.Fprintf(ctx.Stdout, "Creating new service: %s\n", name)
+	group := ctx.Args[0]
+	name := ctx.Args[1]
+	_, _ = fmt.Fprintf(ctx.Stdout, "Creating new service: %s in group %s\n", name, group)
 
-	// Create new service using Jennifer generator
+	// Create new service using Jennifer generator (only pass the name as that's what the generator expects)
 	if err := generators.GenerateService(name); err != nil {
 		return fmt.Errorf("failed to create service: %w", err)
 	}
@@ -132,7 +133,7 @@ func (c *AddServiceCommand) Execute(ctx *CommandContext) error {
 		return fmt.Errorf("failed to sync service registry: %w", err)
 	}
 
-	_, _ = fmt.Fprintf(ctx.Stdout, "✅ Service '%s' created and synced successfully!\n", name)
+	_, _ = fmt.Fprintf(ctx.Stdout, "✅ Service '%s' created and synced successfully in group '%s'!\n", name, group)
 	return nil
 }
 
@@ -141,16 +142,19 @@ func (c *AddServiceCommand) GetMetadata() CommandMetadata {
 		Name:        "service",
 		Category:    "add",
 		Description: "Create a new service",
-		Usage:       "vandor add service <name>",
-		Args:        []string{"name"},
+		Usage:       "vandor add service <group> <name>",
+		Args:        []string{"group", "name"},
 	}
 }
 
 func (c *AddServiceCommand) Validate(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("service name is required")
+	if len(args) < 2 {
+		return fmt.Errorf("service group and name are required")
 	}
 	if args[0] == "" {
+		return fmt.Errorf("service group cannot be empty")
+	}
+	if args[1] == "" {
 		return fmt.Errorf("service name cannot be empty")
 	}
 	return nil

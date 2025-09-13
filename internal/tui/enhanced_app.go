@@ -79,7 +79,33 @@ func (m *EnhancedModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		return m.handleKeyPress(msg)
+		// Handle special keys first
+		switch keypress := msg.String(); keypress {
+		case "q", "ctrl+c":
+			if m.screen != ScreenMain {
+				return m.navigateBack(), nil
+			}
+			m.quitting = true
+			return m, tea.Quit
+		case "esc":
+			return m.navigateBack(), nil
+		case "enter":
+			return m.handleEnterKey()
+		}
+
+		// For list screens, let the list handle other keys (navigation, filtering, etc.)
+		if m.screen == ScreenMain || m.screen == ScreenAdd || m.screen == ScreenSync || m.screen == ScreenTheme {
+			var cmd tea.Cmd
+			m.list, cmd = m.list.Update(msg)
+			return m, cmd
+		}
+
+		// For input screen, let the text input handle the keys
+		if m.screen == ScreenInput {
+			var cmd tea.Cmd
+			m.textInput, cmd = m.textInput.Update(msg)
+			return m, cmd
+		}
 
 	case ExecutionCompleteMsg:
 		m.executionResult = msg.Result
@@ -90,35 +116,6 @@ func (m *EnhancedModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.resultMessage = fmt.Sprintf("Error: %v", m.executionResult.Error)
 		}
 		return m, nil
-	}
-
-	// Update active component based on screen
-	switch m.screen {
-	case ScreenInput:
-		var cmd tea.Cmd
-		m.textInput, cmd = m.textInput.Update(msg)
-		return m, cmd
-	default:
-		var cmd tea.Cmd
-		m.list, cmd = m.list.Update(msg)
-		return m, cmd
-	}
-}
-
-func (m *EnhancedModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch keypress := msg.String(); keypress {
-	case "q", "ctrl+c":
-		if m.screen != ScreenMain {
-			return m.navigateBack(), nil
-		}
-		m.quitting = true
-		return m, tea.Quit
-
-	case "esc":
-		return m.navigateBack(), nil
-
-	case "enter":
-		return m.handleEnterKey()
 	}
 
 	return m, nil
@@ -305,21 +302,28 @@ func (m *EnhancedModel) View() string {
 
 func (m *EnhancedModel) renderListScreen(styles *theme.Styles) string {
 	var title string
+	var helpText string
+
 	switch m.screen {
 	case ScreenAdd:
 		title = "🔧 Add Components"
+		helpText = "↑/↓: navigate • enter: select • esc: back • q: quit"
 	case ScreenSync:
 		title = "⚙️ Sync Code"
+		helpText = "↑/↓: navigate • enter: select • esc: back • q: quit"
 	case ScreenTheme:
 		title = "🎨 Manage Themes"
+		helpText = "↑/↓: navigate • enter: select • esc: back • q: quit"
 	case ScreenVpkg:
 		title = "📦 Manage Packages"
+		helpText = "↑/↓: navigate • enter: select • esc: back • q: quit"
 	default:
 		title = "🚀 Vandor CLI"
+		helpText = "↑/↓: navigate • enter: select • q: quit"
 	}
 
 	header := styles.Title.Render(title)
-	help := styles.Help.Render("Press 'q' to quit, 'esc' to go back")
+	help := styles.Help.Render(helpText)
 
 	return fmt.Sprintf("\n%s\n\n%s\n\n%s", header, m.list.View(), help)
 }
