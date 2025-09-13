@@ -349,6 +349,7 @@ func GetAutoTheme() *Theme {
 // Global theme instance - now defaults to auto-detected Catppuccin theme
 var currentTheme = GetAutoTheme()
 var currentStyles = currentTheme.GetStyles()
+var currentThemeName = "auto"
 
 // GetCurrentStyles returns the current theme styles
 func GetCurrentStyles() *Styles {
@@ -361,32 +362,43 @@ func SetTheme(theme *Theme) {
 	currentStyles = currentTheme.GetStyles()
 }
 
+// GetCurrentThemeName returns the name of the current theme
+func GetCurrentThemeName() string {
+	return currentThemeName
+}
+
 // SetDefaultTheme sets the default theme
 func SetDefaultTheme() {
+	currentThemeName = "default"
 	SetTheme(DefaultTheme())
 }
 
 // SetCatppuccinMochaTheme sets the Catppuccin Mocha theme (dark)
 func SetCatppuccinMochaTheme() {
+	currentThemeName = "mocha"
 	SetTheme(CatppuccinMochaTheme())
 }
 
 // SetCatppuccinLatteTheme sets the Catppuccin Latte theme (light)
 func SetCatppuccinLatteTheme() {
+	currentThemeName = "latte"
 	SetTheme(CatppuccinLatteTheme())
 }
 
 // SetCatppuccinFrappeTheme sets the Catppuccin Frappe theme (medium)
 func SetCatppuccinFrappeTheme() {
+	currentThemeName = "frappe"
 	SetTheme(CatppuccinFrappeTheme())
 }
 
 // SetAutoTheme automatically selects the appropriate theme based on system detection
 func SetAutoTheme() {
+	currentThemeName = "auto"
 	SetTheme(GetAutoTheme())
 }
 
 // SetDraculaTheme sets the Dracula theme
 func SetDraculaTheme() {
+	currentThemeName = "dracula"
 	SetTheme(DraculaTheme())
 }

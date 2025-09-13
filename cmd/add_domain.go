@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/alfariiizi/vandor-cli/internal/generators"
+	"github.com/alfariiizi/vandor-cli/internal/command"
 )
 
 var addDomainCmd = &cobra.Command{
@@ -14,21 +14,20 @@ var addDomainCmd = &cobra.Command{
 	Long:  `Create a new domain and regenerate domain code.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		name := args[0]
-		fmt.Printf("Creating new domain: %s\n", name)
-
-		// Create new domain using Jennifer generator
-		if err := generators.GenerateDomain(name); err != nil {
-			er(fmt.Sprintf("Failed to create domain: %v", err))
+		// Use unified command system
+		registry := command.GetGlobalRegistry()
+		unifiedCmd, exists := registry.Get("add", "domain")
+		if !exists {
+			er("Domain command not found in registry")
 		}
 
-		// Auto-sync domain registry
-		fmt.Println("Auto-syncing domain registry...")
-		if err := generators.GenerateDomainRegistry(); err != nil {
-			er(fmt.Sprintf("Failed to sync domain registry: %v", err))
-		}
+		// Create command context
+		ctx := command.NewCommandContext(args)
 
-		fmt.Printf("✅ Domain '%s' created and synced successfully!\n", name)
+		// Execute the unified command
+		if err := unifiedCmd.Execute(ctx); err != nil {
+			er(fmt.Sprintf("Failed to execute domain command: %v", err))
+		}
 	},
 }
 
