@@ -249,7 +249,7 @@ func showInstallationInstructions() {
 	// Manual download
 	fmt.Println("💾 Manual Download")
 	fmt.Println("------------------")
-	fmt.Println("1. Visit: https://github.com/alfariiizi/vandor-cli-cli/releases/latest")
+	fmt.Println("1. Visit: https://github.com/alfariiizi/vandor-cli/releases/latest")
 	fmt.Printf("2. Download the binary for your platform (%s/%s)\n", runtime.GOOS, runtime.GOARCH)
 	fmt.Println("3. Extract and move to PATH:")
 	fmt.Println()
@@ -311,7 +311,7 @@ func showInstallationInstructions() {
 	// Support
 	fmt.Println("🆘 Support")
 	fmt.Println("----------")
-	fmt.Println("GitHub: https://github.com/alfariiizi/vandor-cli-cli/issues")
+	fmt.Println("GitHub: https://github.com/alfariiizi/vandor-cli/issues")
 	fmt.Println("Docs:   https://docs.vandor.dev")
 }
 
@@ -413,7 +413,7 @@ func performUninstall() error {
 	}
 	fmt.Println()
 	fmt.Println("🙏 Thank you for using Vandor CLI!")
-	fmt.Println("   If you need to reinstall, visit: https://github.com/alfariiizi/vandor-cli-cli")
+	fmt.Println("   If you need to reinstall, visit: https://github.com/alfariiizi/vandor-cli")
 
 	return nil
 }
