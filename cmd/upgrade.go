@@ -381,35 +381,93 @@ func replaceCurrentBinary(newBinaryPath string) error {
 		return fmt.Errorf("failed to resolve symlinks: %v", err)
 	}
 
-	// Create backup of current binary
+	// Create a temporary script to perform the replacement after we exit
+	scriptPath, err := createReplacementScript(newBinaryPath, currentExe)
+	if err != nil {
+		return fmt.Errorf("failed to create replacement script: %v", err)
+	}
+
+	// Execute the replacement script in the background and exit
+	fmt.Println("📥 Starting binary replacement...")
+	fmt.Println("⏳ The process will restart automatically...")
+
+	return executeReplacementScript(scriptPath)
+}
+
+func createReplacementScript(newBinaryPath, currentExe string) (string, error) {
 	backupPath := currentExe + ".backup"
-	if err := copyFile(currentExe, backupPath); err != nil {
-		return fmt.Errorf("failed to create backup: %v", err)
+
+	// Create shell script content
+	scriptContent := fmt.Sprintf(`#!/bin/bash
+set -e
+
+echo "🔄 Performing binary replacement..."
+
+# Wait for current process to exit
+sleep 1
+
+# Create backup
+if [ -f "%s" ]; then
+    echo "📦 Creating backup..."
+    cp "%s" "%s" || exit 1
+fi
+
+# Replace binary
+echo "📥 Installing new binary..."
+cp "%s" "%s" || {
+    echo "❌ Failed to replace binary, restoring backup..."
+    if [ -f "%s" ]; then
+        cp "%s" "%s"
+    fi
+    exit 1
+}
+
+# Set permissions
+chmod +x "%s"
+
+# Clean up
+rm -f "%s"
+rm -f "%s"
+
+echo "✅ Binary replacement completed successfully!"
+echo "🎉 Vandor CLI has been upgraded!"
+echo "   Run 'vandor version' to verify the new version."
+`, currentExe, currentExe, backupPath, newBinaryPath, currentExe, backupPath, backupPath, currentExe, currentExe, backupPath, "$0")
+
+	// Create temporary script file
+	scriptFile, err := os.CreateTemp("", "vandor-upgrade-*.sh")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = scriptFile.Close() }()
+
+	if _, err := scriptFile.WriteString(scriptContent); err != nil {
+		return "", err
 	}
 
-	// Replace the binary
-	if err := copyFile(newBinaryPath, currentExe); err != nil {
-		// Restore backup if replacement fails
-		if copyErr := copyFile(backupPath, currentExe); copyErr != nil {
-			fmt.Printf("Warning: failed to restore backup: %v\n", copyErr)
-		}
-		if rmErr := os.Remove(backupPath); rmErr != nil {
-			fmt.Printf("Warning: failed to remove backup: %v\n", rmErr)
-		}
-		return fmt.Errorf("failed to replace binary: %v", err)
+	// Make script executable
+	if err := os.Chmod(scriptFile.Name(), 0755); err != nil {
+		return "", err
 	}
 
-	// Make executable
-	if err := os.Chmod(currentExe, 0755); err != nil {
-		return fmt.Errorf("failed to set permissions: %v", err)
+	return scriptFile.Name(), nil
+}
+
+func executeReplacementScript(scriptPath string) error {
+	// Execute the script in the background
+	cmd := exec.Command("bash", scriptPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Start the script
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start replacement script: %v", err)
 	}
 
-	// Clean up backup
-	if err := os.Remove(backupPath); err != nil {
-		fmt.Printf("Warning: failed to remove backup: %v\n", err)
-	}
-
-	return nil
+	// Don't wait for it to complete - we need to exit so the binary can be replaced
+	fmt.Println("🚀 Replacement process started. Exiting...")
+	os.Exit(0)
+	return nil // This line will never be reached
 }
 
 func copyFile(src, dst string) error {
