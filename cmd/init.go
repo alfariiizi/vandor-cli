@@ -147,6 +147,14 @@ func getArchitectureDependencies(architecture string) *ArchitectureDependencies 
 		return &ArchitectureDependencies{
 			Dependencies: []Dependency{
 				{
+					Name:         "task",
+					Description:  "Task runner for automation (go-task/task)",
+					CheckCommand: []string{"task", "--version"}, // Will fallback to go-task
+					InstallCmd:   []string{"go", "install", "github.com/go-task/task/v3/cmd/task@latest"},
+					ManualURL:    "https://taskfile.dev/installation/",
+					Required:     true,
+				},
+				{
 					Name:         "air",
 					Description:  "Hot reload tool for Go development",
 					CheckCommand: []string{"air", "--version"},
@@ -167,6 +175,14 @@ func getArchitectureDependencies(architecture string) *ArchitectureDependencies 
 	case "eda":
 		return &ArchitectureDependencies{
 			Dependencies: []Dependency{
+				{
+					Name:         "task",
+					Description:  "Task runner for automation (go-task/task)",
+					CheckCommand: []string{"task", "--version"}, // Will fallback to go-task
+					InstallCmd:   []string{"go", "install", "github.com/go-task/task/v3/cmd/task@latest"},
+					ManualURL:    "https://taskfile.dev/installation/",
+					Required:     true,
+				},
 				{
 					Name:         "air",
 					Description:  "Hot reload tool for Go development",
@@ -309,12 +325,52 @@ func isDependencyInstalled(checkCommand []string) bool {
 		return false
 	}
 
+	toolName := checkCommand[0]
+
+	// Special handling for Task runner (task vs go-task)
+	if toolName == "task" {
+		// Try 'task' first
+		cmd := exec.Command("task", checkCommand[1:]...)
+		cmd.Stdout = nil // Suppress output
+		cmd.Stderr = nil
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+
+		// Try 'go-task' as fallback (common on Linux)
+		cmd = exec.Command("go-task", checkCommand[1:]...)
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+	}
+
 	// Try the specific check command first
 	cmd := exec.Command(checkCommand[0], checkCommand[1:]...)
 	cmd.Stdout = nil // Suppress output
 	cmd.Stderr = nil
 	if err := cmd.Run(); err == nil {
 		return true
+	}
+
+	// For Task runner, also check alternative names in PATH
+	if toolName == "task" {
+		// Try with 'which go-task' on Unix-like systems
+		cmd = exec.Command("which", "go-task")
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+
+		// Try with 'where go-task' on Windows
+		cmd = exec.Command("where", "go-task")
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		if err := cmd.Run(); err == nil {
+			return true
+		}
 	}
 
 	// Fallback: try with 'which' on Unix-like systems
@@ -360,6 +416,14 @@ func showManualInstallation(dep Dependency, styles *theme.Styles) {
 	if len(dep.InstallCmd) > 0 {
 		fmt.Println(styles.Item.Render(fmt.Sprintf("  %s", strings.Join(dep.InstallCmd, " "))))
 	}
+
+	// Special note for Task runner about cross-platform naming
+	if dep.Name == "task" {
+		fmt.Println(styles.Item.Render("  Note: On some Linux systems, the binary may be named 'go-task'"))
+		fmt.Println(styles.Item.Render("  Package managers: brew install go-task/tap/go-task (macOS)"))
+		fmt.Println(styles.Item.Render("                   : sudo snap install task --classic (Linux)"))
+	}
+
 	if dep.ManualURL != "" {
 		fmt.Println(styles.Item.Render(fmt.Sprintf("  or visit: %s", dep.ManualURL)))
 	}
@@ -648,7 +712,6 @@ func replaceModuleNamesInProject(projectDir, newModuleName string) error {
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}

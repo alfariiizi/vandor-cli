@@ -163,7 +163,6 @@ func performUpgrade() error {
 
 	fmt.Printf("✅ Successfully upgraded to Vandor CLI %s!\n", release.TagName)
 	fmt.Println("🎉 Run 'vandor version' to verify the installation.")
-	fmt.Println("Hit enter to exit...")
 
 	return nil
 }
@@ -433,6 +432,7 @@ rm -f "%s"
 echo "✅ Binary replacement completed successfully!"
 echo "🎉 Vandor CLI has been upgraded!"
 echo "   Run 'vandor version' to verify the new version."
+echo "Hit enter to exit..."
 `, currentExe, currentExe, backupPath, newBinaryPath, currentExe, backupPath, backupPath, currentExe, currentExe, backupPath, "$0")
 
 	// Create temporary script file
@@ -505,7 +505,7 @@ func performSourceUpgrade() error {
 		return fmt.Errorf("git is required for source installation")
 	}
 	if !commandExists("go") {
-		return fmt.Errorf("Go is required for source installation (install from https://golang.org/)")
+		return fmt.Errorf("go is required for source installation (install from https://golang.org/)")
 	}
 
 	// Create temporary directory
