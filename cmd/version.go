@@ -30,7 +30,7 @@ var versionCmd = &cobra.Command{
 
 func showSimpleVersion() {
 	version, commit, date := getVersionInfo()
-	fmt.Printf("Vandor CLI v%s\n", version)
+	fmt.Printf("Vandor CLI %s\n", version)
 	fmt.Printf("Commit: %s\n", commit)
 	fmt.Printf("Built: %s\n", date)
 }

@@ -139,7 +139,7 @@ fi
 # Test installation
 if command -v vandor >/dev/null 2>&1; then
     echo "🎉 Installation verified!"
-    vandor --version
+    vandor version
 else
     echo "⚠️  Installation complete, but 'vandor' command not found in PATH"
     echo "   You may need to restart your shell or add $INSTALL_DIR to your PATH"
