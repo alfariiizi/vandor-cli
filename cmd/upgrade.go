@@ -470,31 +470,6 @@ func executeReplacementScript(scriptPath string) error {
 	return nil // This line will never be reached
 }
 
-func copyFile(src, dst string) error {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if closeErr := srcFile.Close(); closeErr != nil {
-			fmt.Printf("Warning: failed to close source file: %v\n", closeErr)
-		}
-	}()
-
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if closeErr := dstFile.Close(); closeErr != nil {
-			fmt.Printf("Warning: failed to close destination file: %v\n", closeErr)
-		}
-	}()
-
-	_, err = io.Copy(dstFile, srcFile)
-	return err
-}
-
 func formatSize(bytes int64) string {
 	const unit = 1024
 	if bytes < unit {
