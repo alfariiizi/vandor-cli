@@ -96,7 +96,7 @@ func performUpgrade() error {
 			fmt.Println("⚠️  No GitHub releases found.")
 			fmt.Println("💡 Would you like to upgrade from source code instead? (y/N)")
 			var response string
-			if _, err := fmt.Scanln(&response); err != nil {
+			if _, scanErr := fmt.Scanln(&response); scanErr != nil {
 				// Handle scan error gracefully
 				response = "n"
 			}
