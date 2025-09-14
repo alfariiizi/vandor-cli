@@ -33,16 +33,18 @@ func (i *Installer) Install(packageName string, opts InstallOptions) error {
 		version = opts.Version
 	}
 
-	// Fetch package metadata
-	meta, err := i.registryClient.FetchPackageMeta(name)
+	// Find package in repositories
+	packageWithRepo, err := i.registryClient.FindPackage(name)
 	if err != nil {
-		return fmt.Errorf("failed to fetch package metadata: %w", err)
+		return fmt.Errorf("failed to find package: %w", err)
 	}
+
+	pkg := packageWithRepo.Package
 
 	// Determine destination path
 	destPath := opts.Dest
 	if destPath == "" {
-		destPath = meta.Destination
+		destPath = pkg.Destination
 	}
 	if destPath == "" {
 		destPath = fmt.Sprintf("internal/vpkg/%s", name)
@@ -54,35 +56,45 @@ func (i *Installer) Install(packageName string, opts InstallOptions) error {
 	}
 
 	// Prepare template context
-	ctx, err := i.prepareTemplateContext(name, meta, destPath)
+	ctx, err := i.prepareTemplateContext(name, &pkg, destPath)
 	if err != nil {
 		return fmt.Errorf("failed to prepare template context: %w", err)
 	}
 
 	// Create destination directory
 	if !opts.DryRun {
-		if err := os.MkdirAll(destPath, 0755); err != nil {
-			return fmt.Errorf("failed to create destination directory: %w", err)
+		if errDir := os.MkdirAll(destPath, 0755); errDir != nil {
+			return fmt.Errorf("failed to create destination directory: %w", errDir)
 		}
 	}
 
-	// Install templates
-	for _, templatePath := range meta.Templates {
-		if err := i.installTemplate(name, templatePath, destPath, ctx, opts); err != nil {
+	// Discover and install templates from the templates directory
+	templateFiles, err := i.registryClient.DiscoverTemplateFiles(packageWithRepo, pkg.Templates)
+	if err != nil {
+		return fmt.Errorf("failed to discover template files: %w", err)
+	}
+
+	if len(templateFiles) == 0 {
+		return fmt.Errorf("no template files found in %s", pkg.Templates)
+	}
+
+	// Install each discovered template
+	for _, templatePath := range templateFiles {
+		if err := i.installTemplate(packageWithRepo, templatePath, destPath, ctx, opts); err != nil {
 			return fmt.Errorf("failed to install template %s: %w", templatePath, err)
 		}
 	}
 
 	// Write metadata file
 	if !opts.DryRun {
-		if err := i.writeInstalledMeta(destPath, name, version, meta); err != nil {
+		if err := i.writeInstalledMeta(destPath, name, version, &pkg); err != nil {
 			return fmt.Errorf("failed to write package metadata: %w", err)
 		}
 	}
 
 	// Generate usage receipt
 	if !opts.DryRun {
-		i.printUsageReceipt(name, meta, ctx)
+		i.printUsageReceipt(name, &pkg, ctx)
 	}
 
 	return nil
@@ -145,9 +157,9 @@ func (i *Installer) ListInstalled() ([]InstalledPackage, error) {
 }
 
 // installTemplate installs a single template file
-func (i *Installer) installTemplate(packageName, templatePath, destPath string, ctx TemplateContext, opts InstallOptions) error {
-	// Fetch template content
-	content, err := i.registryClient.FetchPackageFile(packageName, templatePath)
+func (i *Installer) installTemplate(packageWithRepo *PackageWithRepo, templatePath, destPath string, ctx TemplateContext, opts InstallOptions) error {
+	// Fetch template content from repository
+	content, err := i.registryClient.FetchPackageFile(packageWithRepo, templatePath)
 	if err != nil {
 		return err
 	}
@@ -201,7 +213,7 @@ func (i *Installer) installTemplate(packageName, templatePath, destPath string, 
 }
 
 // prepareTemplateContext creates the template context
-func (i *Installer) prepareTemplateContext(packageName string, meta *PackageMeta, destPath string) (TemplateContext, error) {
+func (i *Installer) prepareTemplateContext(packageName string, pkg *Package, destPath string) (TemplateContext, error) {
 	module, err := utils.DetectGoModule()
 	if err != nil {
 		return TemplateContext{}, fmt.Errorf("failed to detect Go module: %w", err)
@@ -209,23 +221,23 @@ func (i *Installer) prepareTemplateContext(packageName string, meta *PackageMeta
 
 	parts := strings.Split(packageName, "/")
 	namespace := parts[0]
-	pkg := parts[1]
+	pkgName := parts[1]
 
 	// Sanitize package name for Go identifier
-	packageIdent := utils.ToGoIdentifier(strings.ReplaceAll(pkg, "-", ""))
+	packageIdent := utils.ToGoIdentifier(strings.ReplaceAll(pkgName, "-", ""))
 
 	return TemplateContext{
 		Module:      module,
 		VpkgName:    packageName,
 		Namespace:   namespace,
-		Pkg:         pkg,
+		Pkg:         pkgName,
 		Package:     packageIdent,
 		PackagePath: destPath,
-		Version:     meta.Version,
-		Author:      meta.Author,
+		Version:     pkg.Version,
+		Author:      "", // Author is now at repository level
 		Time:        time.Now().Format(time.RFC3339),
-		Title:       meta.Title,
-		Description: meta.Description,
+		Title:       pkg.Title,
+		Description: pkg.Description,
 	}, nil
 }
 
@@ -262,14 +274,14 @@ func (i *Installer) findInstalledPackage(packageName string) string {
 }
 
 // writeInstalledMeta writes metadata for an installed package
-func (i *Installer) writeInstalledMeta(destPath, name, version string, meta *PackageMeta) error {
+func (i *Installer) writeInstalledMeta(destPath, name, version string, pkg *Package) error {
 	installed := InstalledPackage{
 		Name:        name,
 		Version:     version,
 		InstalledAt: time.Now(),
 		Path:        destPath,
-		Type:        meta.Type,
-		Meta:        *meta,
+		Type:        pkg.Type,
+		Meta:        *pkg,
 	}
 
 	data, err := yaml.Marshal(installed)
@@ -297,10 +309,10 @@ func (i *Installer) loadInstalledPackage(metaPath string) (*InstalledPackage, er
 }
 
 // printUsageReceipt prints installation success message and usage instructions
-func (i *Installer) printUsageReceipt(packageName string, meta *PackageMeta, ctx TemplateContext) {
+func (i *Installer) printUsageReceipt(packageName string, pkg *Package, ctx TemplateContext) {
 	fmt.Printf("\n✅ Package %s installed successfully!\n\n", packageName)
 
-	if meta.Type == "fx-module" {
+	if pkg.Type == "fx-module" {
 		fmt.Printf("📦 Import the package:\n")
 		fmt.Printf("   import %s \"%s/%s\"\n\n", ctx.Package, ctx.Module, ctx.PackagePath)
 
@@ -310,14 +322,14 @@ func (i *Installer) printUsageReceipt(packageName string, meta *PackageMeta, ctx
 		fmt.Printf("       // ... other modules\n")
 		fmt.Printf("   )\n\n")
 
-		if len(meta.Dependencies) > 0 {
+		if len(pkg.Dependencies) > 0 {
 			fmt.Printf("📋 Dependencies to add:\n")
-			for _, dep := range meta.Dependencies {
+			for _, dep := range pkg.Dependencies {
 				fmt.Printf("   go get %s\n", dep)
 			}
 			fmt.Printf("\n")
 		}
-	} else if meta.Type == "cli-command" {
+	} else if pkg.Type == "cli-command" {
 		fmt.Printf("🚀 Run as CLI command:\n")
 		fmt.Printf("   vandor vpkg exec %s [args]\n\n", packageName)
 

@@ -32,7 +32,7 @@ func GenerateUsecase(usecaseName string) error {
 	}
 
 	// Check if usecase already exists
-	usecasePath := filepath.Join("internal", "core", "usecase", strings.ToLower(usecaseName)+".go")
+	usecasePath := filepath.Join("internal", "core", "usecase", utils.ToPascalCase(usecaseName)+".go")
 	if _, err := os.Stat(usecasePath); err == nil {
 		return fmt.Errorf("usecase %s already exists at %s", usecaseName, usecasePath)
 	}

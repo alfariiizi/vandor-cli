@@ -2,24 +2,42 @@ package vpkg
 
 import "time"
 
-// Registry represents the main registry index
+// Registry represents the main registry index (new repository-based format)
 type Registry struct {
-	Version     string    `yaml:"version"`
-	RegistryURL string    `yaml:"registry_url"`
-	Packages    []Package `yaml:"packages"`
-	Tags        []Tag     `yaml:"tags"`
+	Version      string           `yaml:"version"`
+	RegistryURL  string           `yaml:"registry_url"`
+	Repositories []RepositoryInfo `yaml:"repositories"`
+	Tags         []Tag            `yaml:"tags"`
 }
 
-// Package represents a package in the registry
+// RepositoryInfo represents a repository entry in the registry
+type RepositoryInfo struct {
+	Name       string `yaml:"name"`       // e.g. "vpkg-vandor-official"
+	Repository string `yaml:"repository"` // GitHub repository URL
+	MetaURL    string `yaml:"meta_url"`   // URL to meta.yaml
+	Author     string `yaml:"author"`     // Repository author
+	Verified   bool   `yaml:"verified"`   // Whether repository is verified
+}
+
+// RepositoryMeta represents the meta.yaml from a repository (new array format)
+type RepositoryMeta struct {
+	Version    string    `yaml:"version"`
+	Repository string    `yaml:"repository"`
+	Author     string    `yaml:"author"`
+	License    string    `yaml:"license"`
+	Packages   []Package `yaml:"packages"` // Array of packages in this repository
+}
+
+// Package represents a single package (now part of RepositoryMeta.Packages)
 type Package struct {
 	Name         string   `yaml:"name"`
 	Title        string   `yaml:"title"`
 	Description  string   `yaml:"description"`
 	Type         string   `yaml:"type"` // fx-module, cli-command
+	Entry        string   `yaml:"entry"`
+	Templates    string   `yaml:"templates"` // Now a directory path, not array
+	Destination  string   `yaml:"destination"`
 	Version      string   `yaml:"version"`
-	License      string   `yaml:"license"`
-	Author       string   `yaml:"author"`
-	Repository   string   `yaml:"repository"`
 	Tags         []string `yaml:"tags,omitempty"`
 	Dependencies []string `yaml:"dependencies,omitempty"`
 }
@@ -30,30 +48,21 @@ type Tag struct {
 	Description string `yaml:"description"`
 }
 
-// PackageMeta represents package metadata from meta.yaml
-type PackageMeta struct {
-	Name         string   `yaml:"name"`
-	Title        string   `yaml:"title"`
-	Description  string   `yaml:"description"`
-	Type         string   `yaml:"type"`
-	Entry        string   `yaml:"entry"`
-	Templates    []string `yaml:"templates"`
-	Destination  string   `yaml:"destination"`
-	Version      string   `yaml:"version"`
-	License      string   `yaml:"license"`
-	Author       string   `yaml:"author"`
-	Tags         []string `yaml:"tags,omitempty"`
-	Dependencies []string `yaml:"dependencies,omitempty"`
+// PackageWithRepo combines package info with its repository context
+type PackageWithRepo struct {
+	Package        Package        `json:"package"`
+	RepositoryInfo RepositoryInfo `json:"repository"`
+	RepositoryMeta RepositoryMeta `json:"repo_meta"`
 }
 
 // InstalledPackage represents a locally installed package
 type InstalledPackage struct {
-	Name        string      `yaml:"name"`
-	Version     string      `yaml:"version"`
-	InstalledAt time.Time   `yaml:"installed_at"`
-	Path        string      `yaml:"path"`
-	Type        string      `yaml:"type"`
-	Meta        PackageMeta `yaml:"meta"`
+	Name        string    `yaml:"name"`
+	Version     string    `yaml:"version"`
+	InstalledAt time.Time `yaml:"installed_at"`
+	Path        string    `yaml:"path"`
+	Type        string    `yaml:"type"`
+	Meta        Package   `yaml:"meta"` // Use Package type instead of PackageMeta
 }
 
 // TemplateContext provides data for template rendering
