@@ -33,9 +33,8 @@ type Package struct {
 	Name         string   `yaml:"name"`
 	Title        string   `yaml:"title"`
 	Description  string   `yaml:"description"`
-	Type         string   `yaml:"type"` // fx-module, cli-command
-	Entry        string   `yaml:"entry"`
-	Templates    string   `yaml:"templates"` // Now a directory path, not array
+	Type         string   `yaml:"type"`      // fx-module, cli-command
+	Templates    string   `yaml:"templates"` // Directory path - all templates auto-discovered
 	Destination  string   `yaml:"destination"`
 	Version      string   `yaml:"version"`
 	Tags         []string `yaml:"tags,omitempty"`

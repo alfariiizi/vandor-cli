@@ -1,6 +1,7 @@
 package vpkg
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -194,56 +195,138 @@ func (r *RegistryClient) ListPackages(opts ListOptions) ([]Package, error) {
 	return filtered, nil
 }
 
-// DiscoverTemplateFiles discovers all .tmpl files in a package's templates directory
+// DiscoverTemplateFiles discovers all template files in a package's templates directory
+// Supports multiple template extensions: .tmpl, .templ, .gotmpl
+// Uses GitHub API for efficient discovery instead of brute-force HTTP requests
 func (r *RegistryClient) DiscoverTemplateFiles(packageWithRepo *PackageWithRepo, templatesDir string) ([]string, error) {
-	// This function will recursively discover all template files from a remote repository
-	// For now, we'll simulate this by fetching a directory listing or using known patterns
-	// In a real implementation, you'd need to either:
-	// 1. Use GitHub API to list directory contents
-	// 2. Have a manifest file listing all templates
-	// 3. Try common template patterns
+	// First try GitHub API approach for efficient discovery
+	if files, err := r.discoverViaGitHubAPI(packageWithRepo, templatesDir); err == nil && len(files) > 0 {
+		return files, nil
+	}
+
+	// Fallback to optimized pattern matching (reduced set of most common patterns)
+	return r.discoverViaPatterns(packageWithRepo, templatesDir)
+}
+
+// discoverViaGitHubAPI uses GitHub API to efficiently discover all template files
+func (r *RegistryClient) discoverViaGitHubAPI(packageWithRepo *PackageWithRepo, templatesDir string) ([]string, error) {
+	// Extract GitHub repo info from MetaURL
+	// https://raw.githubusercontent.com/user/repo/main/meta.yaml -> user/repo
+	repoURL := packageWithRepo.RepositoryInfo.MetaURL
+	if !strings.Contains(repoURL, "github.com") {
+		return nil, fmt.Errorf("not a GitHub repository")
+	}
+
+	// Parse GitHub repo from URL
+	parts := strings.Split(repoURL, "/")
+	if len(parts) < 5 {
+		return nil, fmt.Errorf("invalid GitHub URL format")
+	}
+
+	owner := parts[3]
+	repo := parts[4]
+	branch := "main" // Default to main branch
+
+	// GitHub API URL for directory contents
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s",
+		owner, repo, templatesDir, branch)
+
+	return r.fetchGitHubDirectoryContents(apiURL, "")
+}
+
+// fetchGitHubDirectoryContents recursively fetches directory contents from GitHub API
+func (r *RegistryClient) fetchGitHubDirectoryContents(apiURL, pathPrefix string) ([]string, error) {
+	resp, err := r.httpClient.Get(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GitHub API request failed with status %d", resp.StatusCode)
+	}
+
+	var items []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+		URL  string `json:"url"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
+		return nil, err
+	}
 
 	var templateFiles []string
+	templateExtensions := []string{".tmpl", ".templ", ".gotmpl"}
 
-	// Common template patterns to try
-	commonPatterns := []string{
-		"README.md.tmpl",
-		"main.go.tmpl",
-		"config.go.tmpl",
-		"service.go.tmpl",
-		"cmd/main.go.tmpl",
-		"templates/main.go.tmpl",
-		"templates/README.md.tmpl",
-	}
-
-	baseURL := strings.Replace(packageWithRepo.RepositoryInfo.MetaURL, "/meta.yaml", "", 1)
-
-	// Try to fetch each common pattern
-	for _, pattern := range commonPatterns {
-		testURL := fmt.Sprintf("%s/%s/%s", baseURL, templatesDir, pattern)
-		resp, err := r.httpClient.Get(testURL)
-		if err != nil {
-			continue // Skip files that don't exist
+	for _, item := range items {
+		itemPath := item.Name
+		if pathPrefix != "" {
+			itemPath = filepath.Join(pathPrefix, item.Name)
 		}
-		_ = resp.Body.Close()
 
-		if resp.StatusCode == http.StatusOK {
-			templateFiles = append(templateFiles, filepath.Join(templatesDir, pattern))
-		}
-	}
-
-	// If no templates found with common patterns, try the entry file
-	if len(templateFiles) == 0 && packageWithRepo.Package.Entry != "" {
-		entryTemplate := strings.Replace(packageWithRepo.Package.Entry, filepath.Ext(packageWithRepo.Package.Entry), ".tmpl", 1)
-		testURL := fmt.Sprintf("%s/%s/%s", baseURL, templatesDir, entryTemplate)
-		resp, err := r.httpClient.Get(testURL)
-		if err == nil {
-			_ = resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				templateFiles = append(templateFiles, filepath.Join(templatesDir, entryTemplate))
+		if item.Type == "file" {
+			// Check if it's a template file
+			for _, ext := range templateExtensions {
+				if strings.HasSuffix(item.Name, ext) {
+					templateFiles = append(templateFiles, itemPath)
+					break
+				}
+			}
+		} else if item.Type == "dir" {
+			// Recursively fetch directory contents
+			subFiles, err := r.fetchGitHubDirectoryContents(item.URL, itemPath)
+			if err == nil {
+				templateFiles = append(templateFiles, subFiles...)
 			}
 		}
 	}
 
 	return templateFiles, nil
+}
+
+// discoverViaPatterns fallback method using optimized pattern matching
+func (r *RegistryClient) discoverViaPatterns(packageWithRepo *PackageWithRepo, templatesDir string) ([]string, error) {
+	var templateFiles []string
+	baseURL := strings.Replace(packageWithRepo.RepositoryInfo.MetaURL, "/meta.yaml", "", 1)
+	templateExtensions := []string{".tmpl", ".templ", ".gotmpl"}
+
+	// Reduced, high-priority patterns only
+	patterns := []string{
+		// Most common root files
+		"main.go", "service.go", "README.md",
+
+		// Package-specific patterns
+		packageWithRepo.Package.Name + ".go",
+		strings.ReplaceAll(strings.Split(packageWithRepo.Package.Name, "/")[1], "-", "") + ".go",
+
+		// Common directories
+		"cmd/main.go", "internal/service.go",
+		"handler.go", "config.go",
+	}
+
+	// Try reduced pattern set
+	for _, pattern := range patterns {
+		for _, ext := range templateExtensions {
+			templateFile := pattern + ext
+			if r.tryTemplateFile(baseURL, templatesDir, templateFile) {
+				templateFiles = append(templateFiles, templateFile)
+			}
+		}
+	}
+
+	return templateFiles, nil
+}
+
+// tryTemplateFile checks if a template file exists at the given path
+func (r *RegistryClient) tryTemplateFile(baseURL, templatesDir, pattern string) bool {
+	testURL := fmt.Sprintf("%s/%s/%s", baseURL, templatesDir, pattern)
+	resp, err := r.httpClient.Get(testURL)
+	if err != nil {
+		return false
+	}
+	_ = resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
 }

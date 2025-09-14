@@ -211,16 +211,13 @@ Examples:
 			er(fmt.Sprintf("Package %s is not a CLI command (type: %s). Only cli-command packages can be executed.", packageName, targetPkg.Type))
 		}
 
-		// Find entry point
-		entryPoint := targetPkg.Meta.Entry
+		// Find entry point by trying common CLI entry patterns
+		entryPoint := findCLIEntryPoint(targetPkg.Path)
 		if entryPoint == "" {
-			entryPoint = "cmd/main.go"
+			er(fmt.Sprintf("No CLI entry point found in package %s. Tried: main.go, cmd/main.go", packageName))
 		}
 
 		entryPath := filepath.Join(targetPkg.Path, entryPoint)
-		if _, err := os.Stat(entryPath); os.IsNotExist(err) {
-			er(fmt.Sprintf("Entry point %s not found in package %s", entryPath, packageName))
-		}
 
 		// Execute the package
 		fmt.Printf("Executing %s with args: %v\n", packageName, packageArgs)
@@ -270,4 +267,26 @@ func truncate(s string, length int) string {
 		return s
 	}
 	return s[:length-3] + "..."
+}
+
+// findCLIEntryPoint finds the entry point for a CLI package by trying common patterns
+func findCLIEntryPoint(packagePath string) string {
+	// Common CLI entry point patterns to try
+	entryPatterns := []string{
+		"main.go",      // Root level main.go
+		"cmd/main.go",  // cmd directory main.go
+		"cmd/cli.go",   // cmd directory cli.go
+		"cmd/root.go",  // cmd directory root.go (common with Cobra)
+		"main/main.go", // main directory
+		"cli/main.go",  // cli directory
+	}
+
+	for _, pattern := range entryPatterns {
+		entryPath := filepath.Join(packagePath, pattern)
+		if _, err := os.Stat(entryPath); err == nil {
+			return pattern // Return relative path
+		}
+	}
+
+	return "" // No entry point found
 }

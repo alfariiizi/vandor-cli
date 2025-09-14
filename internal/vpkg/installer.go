@@ -41,13 +41,23 @@ func (i *Installer) Install(packageName string, opts InstallOptions) error {
 
 	pkg := packageWithRepo.Package
 
-	// Determine destination path
+	// Determine destination path - always relative to project root
+	projectRoot, err := i.findProjectRoot()
+	if err != nil {
+		return fmt.Errorf("failed to find project root: %w", err)
+	}
+
 	destPath := opts.Dest
 	if destPath == "" {
 		destPath = pkg.Destination
 	}
 	if destPath == "" {
 		destPath = fmt.Sprintf("internal/vpkg/%s", name)
+	}
+
+	// Make destination path absolute from project root
+	if !filepath.IsAbs(destPath) {
+		destPath = filepath.Join(projectRoot, destPath)
 	}
 
 	// Check if package already exists
@@ -158,19 +168,21 @@ func (i *Installer) ListInstalled() ([]InstalledPackage, error) {
 
 // installTemplate installs a single template file
 func (i *Installer) installTemplate(packageWithRepo *PackageWithRepo, templatePath, destPath string, ctx TemplateContext, opts InstallOptions) error {
+	// Build full template file path for fetching
+	// templatePath is relative like "redis.go.tmpl", we need "packages/redis-cache/templates/redis.go.tmpl"
+	fullTemplatePath := fmt.Sprintf("%s/%s", packageWithRepo.Package.Templates, templatePath)
+
 	// Fetch template content from repository
-	content, err := i.registryClient.FetchPackageFile(packageWithRepo, templatePath)
+	content, err := i.registryClient.FetchPackageFile(packageWithRepo, fullTemplatePath)
 	if err != nil {
 		return err
 	}
 
-	// Determine output filename (remove .tmpl extension if present)
-	outputName := filepath.Base(templatePath)
-	outputName = strings.TrimSuffix(outputName, ".tmpl")
-
-	// Preserve directory structure from templates/
-	relPath := strings.TrimPrefix(templatePath, "templates/")
-	relPath = strings.TrimSuffix(relPath, ".tmpl")
+	// Preserve directory structure from templates but remove template extensions
+	// redis.go.tmpl -> redis.go
+	// someDir/others.go.tmpl -> someDir/others.go
+	// cmd/main.go.templ -> cmd/main.go
+	relPath := i.removeTemplateExtension(templatePath)
 
 	outputPath := filepath.Join(destPath, relPath)
 	outputDir := filepath.Dir(outputPath)
@@ -185,8 +197,9 @@ func (i *Installer) installTemplate(packageWithRepo *PackageWithRepo, templatePa
 		return fmt.Errorf("failed to create directory %s: %w", outputDir, err)
 	}
 
-	// Render template if it's a .tmpl file
-	if strings.HasSuffix(templatePath, ".tmpl") {
+	// Render template if it's a template file (supports multiple extensions)
+	if i.isTemplateFile(templatePath) {
+		outputName := filepath.Base(relPath)
 		tmpl, err := template.New(outputName).Funcs(templateFuncs()).Parse(string(content))
 		if err != nil {
 			return fmt.Errorf("failed to parse template: %w", err)
@@ -202,7 +215,7 @@ func (i *Installer) installTemplate(packageWithRepo *PackageWithRepo, templatePa
 			return fmt.Errorf("failed to execute template: %w", err)
 		}
 	} else {
-		// Copy file as-is
+		// Copy file as-is (for non-template files like static assets)
 		if err := os.WriteFile(outputPath, content, 0644); err != nil {
 			return fmt.Errorf("failed to write file: %w", err)
 		}
@@ -348,4 +361,65 @@ func parsePackageSpec(spec string) (name, version string) {
 		return parts[0], parts[1]
 	}
 	return spec, ""
+}
+
+// removeTemplateExtension removes template extensions from file path
+// Supports .tmpl, .templ, .gotmpl extensions
+func (i *Installer) removeTemplateExtension(templatePath string) string {
+	extensions := []string{".tmpl", ".templ", ".gotmpl"}
+
+	for _, ext := range extensions {
+		if strings.HasSuffix(templatePath, ext) {
+			return strings.TrimSuffix(templatePath, ext)
+		}
+	}
+
+	return templatePath // Return as-is if no template extension found
+}
+
+// isTemplateFile checks if a file is a template file based on its extension
+func (i *Installer) isTemplateFile(filePath string) bool {
+	extensions := []string{".tmpl", ".templ", ".gotmpl"}
+
+	for _, ext := range extensions {
+		if strings.HasSuffix(filePath, ext) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// findProjectRoot finds the project root by looking for vandor-config.yaml or go.mod
+func (i *Installer) findProjectRoot() (string, error) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	// Walk up the directory tree looking for project markers
+	dir := currentDir
+	for {
+		// Check for vandor-config.yaml (primary marker)
+		vandorConfig := filepath.Join(dir, "vandor-config.yaml")
+		if _, err := os.Stat(vandorConfig); err == nil {
+			return dir, nil
+		}
+
+		// Check for go.mod as fallback
+		goMod := filepath.Join(dir, "go.mod")
+		if _, err := os.Stat(goMod); err == nil {
+			return dir, nil
+		}
+
+		// Move to parent directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root directory
+			break
+		}
+		dir = parent
+	}
+
+	return "", fmt.Errorf("no project root found (looking for vandor-config.yaml or go.mod)")
 }
