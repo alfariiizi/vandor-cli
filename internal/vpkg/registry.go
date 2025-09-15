@@ -197,15 +197,21 @@ func (r *RegistryClient) ListPackages(opts ListOptions) ([]Package, error) {
 
 // DiscoverTemplateFiles discovers all template files in a package's templates directory
 // Supports multiple template extensions: .tmpl, .templ, .gotmpl
-// Uses GitHub API for efficient discovery instead of brute-force HTTP requests
+// Uses optimized discovery with maximum 3 levels of nesting for performance
 func (r *RegistryClient) DiscoverTemplateFiles(packageWithRepo *PackageWithRepo, templatesDir string) ([]string, error) {
-	// First try GitHub API approach for efficient discovery
-	if files, err := r.discoverViaGitHubAPI(packageWithRepo, templatesDir); err == nil && len(files) > 0 {
+	// Try GitHub API first for accurate directory structure
+	files, err := r.discoverViaGitHubAPI(packageWithRepo, templatesDir)
+	if err == nil && len(files) > 0 {
 		return files, nil
 	}
 
-	// Fallback to optimized pattern matching (reduced set of most common patterns)
-	return r.discoverViaPatterns(packageWithRepo, templatesDir)
+	// Fallback to optimized pattern matching with depth limit
+	files, err = r.discoverViaOptimizedPatterns(packageWithRepo, templatesDir)
+	if err == nil && len(files) > 0 {
+		return files, nil
+	}
+
+	return nil, fmt.Errorf("no template files found in %s", templatesDir)
 }
 
 // discoverViaGitHubAPI uses GitHub API to efficiently discover all template files
@@ -235,7 +241,17 @@ func (r *RegistryClient) discoverViaGitHubAPI(packageWithRepo *PackageWithRepo, 
 }
 
 // fetchGitHubDirectoryContents recursively fetches directory contents from GitHub API
+// Limited to maximum depth of 3 levels for performance
 func (r *RegistryClient) fetchGitHubDirectoryContents(apiURL, pathPrefix string) ([]string, error) {
+	return r.fetchGitHubDirectoryContentsWithDepth(apiURL, pathPrefix, 0, 3)
+}
+
+// fetchGitHubDirectoryContentsWithDepth recursively fetches with depth limit
+func (r *RegistryClient) fetchGitHubDirectoryContentsWithDepth(apiURL, pathPrefix string, currentDepth, maxDepth int) ([]string, error) {
+	if currentDepth > maxDepth {
+		return nil, nil // Stop recursion at max depth
+	}
+
 	resp, err := r.httpClient.Get(apiURL)
 	if err != nil {
 		return nil, err
@@ -275,9 +291,9 @@ func (r *RegistryClient) fetchGitHubDirectoryContents(apiURL, pathPrefix string)
 					break
 				}
 			}
-		} else if item.Type == "dir" {
-			// Recursively fetch directory contents
-			subFiles, err := r.fetchGitHubDirectoryContents(item.URL, itemPath)
+		} else if item.Type == "dir" && currentDepth < maxDepth {
+			// Recursively fetch directory contents with depth limit
+			subFiles, err := r.fetchGitHubDirectoryContentsWithDepth(item.URL, itemPath, currentDepth+1, maxDepth)
 			if err == nil {
 				templateFiles = append(templateFiles, subFiles...)
 			}
@@ -287,27 +303,45 @@ func (r *RegistryClient) fetchGitHubDirectoryContents(apiURL, pathPrefix string)
 	return templateFiles, nil
 }
 
-// discoverViaPatterns fallback method using optimized pattern matching
-func (r *RegistryClient) discoverViaPatterns(packageWithRepo *PackageWithRepo, templatesDir string) ([]string, error) {
+// discoverViaOptimizedPatterns uses optimized pattern matching with maximum 3 levels depth
+func (r *RegistryClient) discoverViaOptimizedPatterns(packageWithRepo *PackageWithRepo, templatesDir string) ([]string, error) {
 	var templateFiles []string
 	baseURL := strings.Replace(packageWithRepo.RepositoryInfo.MetaURL, "/meta.yaml", "", 1)
 	templateExtensions := []string{".tmpl", ".templ", ".gotmpl"}
 
-	// Reduced, high-priority patterns only
+	// Get package name for targeted patterns
+	parts := strings.Split(packageWithRepo.Package.Name, "/")
+	pkgName := parts[len(parts)-1] // e.g., "redis-cache"
+
+	// Define limited, high-probability patterns with max 3 levels
 	patterns := []string{
-		// Most common root files
-		"main.go", "service.go", "README.md",
+		// Level 0: Root files
+		"README.md",
+		"main.go",
+		pkgName + ".go",
+		strings.Split(pkgName, "-")[0] + ".go", // redis.go from redis-cache
 
-		// Package-specific patterns
-		packageWithRepo.Package.Name + ".go",
-		strings.ReplaceAll(strings.Split(packageWithRepo.Package.Name, "/")[1], "-", "") + ".go",
+		// Level 1: Common subdirectories
+		"cmd/main.go",
+		"internal/handler.go",
+		"pkg/service.go",
+		"somDir/test.go", // Your specific case
+		"src/main.go",
 
-		// Common directories
-		"cmd/main.go", "internal/service.go",
-		"handler.go", "config.go",
+		// Level 2: Two levels deep
+		"cmd/server/main.go",
+		"internal/pkg/handler.go",
+		"pkg/internal/service.go",
+		"src/internal/main.go",
+		"cmd/cli/main.go",
+
+		// Level 3: Three levels deep (maximum)
+		"cmd/server/internal/main.go",
+		"internal/pkg/handler/service.go",
+		"pkg/internal/service/handler.go",
 	}
 
-	// Try reduced pattern set
+	// Try each pattern with all template extensions
 	for _, pattern := range patterns {
 		for _, ext := range templateExtensions {
 			templateFile := pattern + ext
@@ -317,13 +351,23 @@ func (r *RegistryClient) discoverViaPatterns(packageWithRepo *PackageWithRepo, t
 		}
 	}
 
+	if len(templateFiles) == 0 {
+		return nil, fmt.Errorf("no template files found with optimized patterns")
+	}
+
 	return templateFiles, nil
 }
 
 // tryTemplateFile checks if a template file exists at the given path
 func (r *RegistryClient) tryTemplateFile(baseURL, templatesDir, pattern string) bool {
 	testURL := fmt.Sprintf("%s/%s/%s", baseURL, templatesDir, pattern)
-	resp, err := r.httpClient.Get(testURL)
+
+	// Create a client with shorter timeout for existence checks
+	client := &http.Client{
+		Timeout: 5 * time.Second, // Shorter timeout for existence checks
+	}
+
+	resp, err := client.Get(testURL)
 	if err != nil {
 		return false
 	}

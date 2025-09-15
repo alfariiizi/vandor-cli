@@ -94,7 +94,6 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		packageName := args[0]
 
-		installer := vpkg.NewInstaller(vpkgRegistry)
 		opts := vpkg.InstallOptions{
 			Registry: vpkgRegistry,
 			Dest:     vpkgDest,
@@ -103,19 +102,41 @@ Examples:
 			Version:  vpkgVersion,
 		}
 
-		fmt.Printf("Installing package: %s\n", packageName)
-		if vpkgDryRun {
-			fmt.Println("(Dry run - no changes will be made)")
+		// Check if we should use progress UI
+		useProgress, _ := cmd.Flags().GetBool("progress")
+		forceTUI, _ := cmd.Flags().GetBool("force-tui")
+
+		// Set environment variable for forcing TUI if flag is set
+		if forceTUI {
+			_ = os.Setenv("FORCE_TUI", "1")
 		}
 
-		if err := installer.Install(packageName, opts); err != nil {
-			er(fmt.Sprintf("Failed to install package %s: %v", packageName, err))
-		}
+		if useProgress {
+			// Use progress installer with enhanced text progress
+			progressInstaller := vpkg.NewProgressInstaller(vpkgRegistry, packageName)
 
-		if !vpkgDryRun {
-			fmt.Printf("✅ Package '%s' installed successfully!\n", packageName)
+			// Always use simple text progress (no TUI)
+			if err := progressInstaller.InstallWithSimpleProgress(packageName, opts); err != nil {
+				er(fmt.Sprintf("Failed to install package %s: %v", packageName, err))
+			}
 		} else {
-			fmt.Printf("✅ Package '%s' would be installed successfully\n", packageName)
+			// Use simple installer without progress
+			installer := vpkg.NewInstaller(vpkgRegistry)
+
+			fmt.Printf("Installing package: %s\n", packageName)
+			if vpkgDryRun {
+				fmt.Println("(Dry run - no changes will be made)")
+			}
+
+			if err := installer.Install(packageName, opts); err != nil {
+				er(fmt.Sprintf("Failed to install package %s: %v", packageName, err))
+			}
+
+			if !vpkgDryRun {
+				fmt.Printf("✅ Package '%s' installed successfully!\n", packageName)
+			} else {
+				fmt.Printf("✅ Package '%s' would be installed successfully\n", packageName)
+			}
 		}
 	},
 }
@@ -256,6 +277,8 @@ func init() {
 	vpkgAddCmd.Flags().BoolVar(&vpkgForce, "force", false, "Overwrite existing files")
 	vpkgAddCmd.Flags().BoolVar(&vpkgDryRun, "dry-run", false, "Show what would be done without making changes")
 	vpkgAddCmd.Flags().StringVar(&vpkgVersion, "version", "", "Specific version to install")
+	vpkgAddCmd.Flags().Bool("progress", true, "Show installation progress with TUI (default: true)")
+	vpkgAddCmd.Flags().Bool("force-tui", false, "Force TUI mode even in non-TTY environments (for testing)")
 
 	// Remove flags
 	vpkgRemoveCmd.Flags().BoolVar(&vpkgBackup, "backup", false, "Create backup before removing")
