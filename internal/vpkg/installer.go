@@ -239,6 +239,23 @@ func (i *Installer) prepareTemplateContext(packageName string, pkg *Package, des
 	// Sanitize package name for Go identifier
 	packageIdent := utils.ToGoIdentifier(strings.ReplaceAll(pkgName, "-", ""))
 
+	// Calculate relative package path for imports
+	relativePackagePath := destPath
+	if filepath.IsAbs(destPath) {
+		// If destPath is absolute, try to make it relative to the project root
+		projectRoot, err := i.findProjectRoot()
+		if err == nil {
+			if rel, err := filepath.Rel(projectRoot, destPath); err == nil {
+				relativePackagePath = rel
+			}
+		}
+	}
+
+	// Create combined import path
+	importPath := filepath.Join(module, relativePackagePath)
+	// Normalize path separators for import paths (always use forward slashes)
+	importPath = filepath.ToSlash(importPath)
+
 	return TemplateContext{
 		Module:      module,
 		VpkgName:    packageName,
@@ -246,6 +263,7 @@ func (i *Installer) prepareTemplateContext(packageName string, pkg *Package, des
 		Pkg:         pkgName,
 		Package:     packageIdent,
 		PackagePath: destPath,
+		ImportPath:  importPath,
 		Version:     pkg.Version,
 		Author:      "", // Author is now at repository level
 		Time:        time.Now().Format(time.RFC3339),
@@ -327,7 +345,7 @@ func (i *Installer) printUsageReceipt(packageName string, pkg *Package, ctx Temp
 
 	if pkg.Type == "fx-module" {
 		fmt.Printf("📦 Import the package:\n")
-		fmt.Printf("   import %s \"%s/%s\"\n\n", ctx.Package, ctx.Module, ctx.PackagePath)
+		fmt.Printf("   import %s \"%s\"\n\n", ctx.Package, ctx.ImportPath)
 
 		fmt.Printf("🔧 Wire into Fx application:\n")
 		fmt.Printf("   app := fx.New(\n")

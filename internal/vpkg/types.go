@@ -72,6 +72,7 @@ type TemplateContext struct {
 	Pkg         string // e.g. "redis-cache"
 	Package     string // sanitized package name e.g. "rediscache"
 	PackagePath string // e.g. "internal/vpkg/vandor/redis-cache"
+	ImportPath  string // Combined import path e.g. "github.com/user/project/internal/vpkg/vandor/redis-cache"
 	Version     string
 	Author      string
 	Time        string
