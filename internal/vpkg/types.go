@@ -95,3 +95,12 @@ type ListOptions struct {
 	Tags     []string
 	Type     string
 }
+
+// GenerateOptions holds options for template generation
+type GenerateOptions struct {
+	InputPath   string // Input file or directory
+	OutputPath  string // Output file or directory
+	PackageName string // Package name for context (optional)
+	DryRun      bool   // Show what would be generated
+	Verbose     bool   // Show detailed process
+}

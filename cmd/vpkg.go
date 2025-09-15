@@ -194,6 +194,67 @@ var vpkgListInstalledCmd = &cobra.Command{
 	},
 }
 
+var vpkgGenerateCmd = &cobra.Command{
+	Use:   "generate",
+	Short: "Generate .tmpl files from .go files",
+	Long: `Generate template files from Go source files by intelligently replacing common patterns with template variables.
+
+This tool analyzes Go source files and converts them to vpkg templates by:
+- Replacing package names with {{.Package}} variables
+- Converting import paths to use {{.ImportPath}}
+- Replacing struct/function names with template variables
+- Adding common template patterns
+
+Examples:
+  # Process single file
+  vandor vpkg generate --input redis.go --output redis.go.tmpl --pkg-name redis-cache
+
+  # Process entire directory
+  vandor vpkg generate --input-dir packages/redis-cache/files --output packages/redis-cache/templates
+  vandor vpkg generate --input-dir ./files --output ./templates --pkg-name redis-cache
+
+⚠️  Warning: This tool provides a starting point but may require manual review and adjustment.
+Always verify the generated templates work correctly before using them.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		inputPath, _ := cmd.Flags().GetString("input")
+		inputDir, _ := cmd.Flags().GetString("input-dir")
+		outputPath, _ := cmd.Flags().GetString("output")
+		packageName, _ := cmd.Flags().GetString("pkg-name")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		verbose, _ := cmd.Flags().GetBool("verbose")
+
+		// Validate input flags
+		if inputPath == "" && inputDir == "" {
+			er("Either --input (for single file) or --input-dir (for directory) is required")
+		}
+		if inputPath != "" && inputDir != "" {
+			er("Cannot use both --input and --input-dir. Choose one.")
+		}
+		if outputPath == "" {
+			er("Output path is required (use --output)")
+		}
+
+		// Use inputDir if specified, otherwise use inputPath
+		finalInputPath := inputPath
+		if inputDir != "" {
+			finalInputPath = inputDir
+		}
+
+		generator := vpkg.NewTemplateGenerator()
+		opts := vpkg.GenerateOptions{
+			InputPath:   finalInputPath,
+			OutputPath:  outputPath,
+			PackageName: packageName,
+			DryRun:      dryRun,
+			Verbose:     verbose,
+		}
+
+		if err := generator.Generate(opts); err != nil {
+			er(fmt.Sprintf("Failed to generate templates: %v", err))
+		}
+	},
+}
+
 var vpkgExecCmd = &cobra.Command{
 	Use:   "exec [package-name] [args...]",
 	Short: "Execute a CLI package",
@@ -263,6 +324,7 @@ func init() {
 	vpkgCmd.AddCommand(vpkgAddCmd)
 	vpkgCmd.AddCommand(vpkgRemoveCmd)
 	vpkgCmd.AddCommand(vpkgListInstalledCmd)
+	vpkgCmd.AddCommand(vpkgGenerateCmd)
 	vpkgCmd.AddCommand(vpkgExecCmd)
 
 	// Global flags
@@ -282,6 +344,14 @@ func init() {
 
 	// Remove flags
 	vpkgRemoveCmd.Flags().BoolVar(&vpkgBackup, "backup", false, "Create backup before removing")
+
+	// Generate flags
+	vpkgGenerateCmd.Flags().String("input", "", "Input file path (single .go file)")
+	vpkgGenerateCmd.Flags().String("input-dir", "", "Input directory path (processes all .go files)")
+	vpkgGenerateCmd.Flags().String("output", "", "Output path (file or directory for .tmpl files)")
+	vpkgGenerateCmd.Flags().String("pkg-name", "", "Package name for template context (e.g., 'redis-cache')")
+	vpkgGenerateCmd.Flags().Bool("dry-run", false, "Show what would be generated without creating files")
+	vpkgGenerateCmd.Flags().Bool("verbose", false, "Show detailed generation process")
 }
 
 // truncate truncates a string to the specified length
