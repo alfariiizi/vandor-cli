@@ -20,7 +20,8 @@ var vpkgCmd = &cobra.Command{
 
 The vpkg system allows you to install reusable components into your project:
 - fx-module packages: Library modules that integrate with Fx dependency injection
-- cli-command packages: Executable CLI tools that can be run via 'vpkg exec'`,
+- cli-command packages: Executable CLI tools that can be run via 'vpkg exec'
+- utility packages: Singleton services and utility functions (no FX required)`,
 }
 
 var (
@@ -332,7 +333,7 @@ func init() {
 
 	// List flags
 	vpkgListCmd.Flags().StringSliceVar(&vpkgTags, "tags", []string{}, "Filter by tags (comma-separated)")
-	vpkgListCmd.Flags().StringVar(&vpkgType, "type", "", "Filter by package type (fx-module, cli-command)")
+	vpkgListCmd.Flags().StringVar(&vpkgType, "type", "", "Filter by package type (fx-module, cli-command, utility)")
 
 	// Add flags
 	vpkgAddCmd.Flags().StringVar(&vpkgDest, "dest", "", "Override destination path")

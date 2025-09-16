@@ -14,6 +14,7 @@ import (
 	"github.com/alfariiizi/vandor-cli/internal/regenerate/seed"
 	"github.com/alfariiizi/vandor-cli/internal/regenerate/service"
 	"github.com/alfariiizi/vandor-cli/internal/regenerate/usecase"
+	"github.com/alfariiizi/vandor-cli/internal/vpkg"
 )
 
 // SyncAllCommand implements the sync all functionality
@@ -27,6 +28,7 @@ func (c *SyncAllCommand) Execute(ctx *CommandContext) error {
 	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing all code...\n")
 
 	// Run all generation functions in the order specified by taskfile gen:all
+	// Note: handler is now managed by http-huma vpkg package
 	generators := []struct {
 		name string
 		fn   func() error
@@ -34,7 +36,6 @@ func (c *SyncAllCommand) Execute(ctx *CommandContext) error {
 		{"domain", domain.RegenerateDomain},
 		{"usecase", usecase.RegenerateUsecase},
 		{"service", service.RegenerateService},
-		{"handler", handler.RegenerateHandler},
 		{"job", job.RegenerateJob},
 		{"scheduler", scheduler.RegenerateScheduler},
 		{"seed", seed.RegenerateSeed},
@@ -47,6 +48,13 @@ func (c *SyncAllCommand) Execute(ctx *CommandContext) error {
 		if err := gen.fn(); err != nil {
 			return fmt.Errorf("failed to regenerate %s: %w", gen.name, err)
 		}
+	}
+
+	// Run vpkg sync capabilities
+	_, _ = fmt.Fprintf(ctx.Stdout, "Checking for vpkg sync capabilities...\n")
+	vpkgSyncManager := vpkg.NewVpkgSyncManager()
+	if err := vpkgSyncManager.ExecuteSyncCapabilities(); err != nil {
+		return fmt.Errorf("failed to execute vpkg sync capabilities: %w", err)
 	}
 
 	// Run goimports to clean up

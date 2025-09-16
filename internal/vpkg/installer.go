@@ -73,7 +73,7 @@ func (i *Installer) Install(packageName string, opts InstallOptions) error {
 
 	// Create destination directory
 	if !opts.DryRun {
-		if errDir := os.MkdirAll(destPath, 0755); errDir != nil {
+		if errDir := os.MkdirAll(destPath, 0o755); errDir != nil {
 			return fmt.Errorf("failed to create destination directory: %w", errDir)
 		}
 	}
@@ -193,7 +193,7 @@ func (i *Installer) installTemplate(packageWithRepo *PackageWithRepo, templatePa
 	}
 
 	// Create directory structure
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", outputDir, err)
 	}
 
@@ -216,7 +216,7 @@ func (i *Installer) installTemplate(packageWithRepo *PackageWithRepo, templatePa
 		}
 	} else {
 		// Copy file as-is (for non-template files like static assets)
-		if err := os.WriteFile(outputPath, content, 0644); err != nil {
+		if err := os.WriteFile(outputPath, content, 0o644); err != nil {
 			return fmt.Errorf("failed to write file: %w", err)
 		}
 	}
@@ -321,7 +321,7 @@ func (i *Installer) writeInstalledMeta(destPath, name, version string, pkg *Pack
 	}
 
 	metaPath := filepath.Join(destPath, "meta.yaml")
-	return os.WriteFile(metaPath, data, 0644)
+	return os.WriteFile(metaPath, data, 0o644)
 }
 
 // loadInstalledPackage loads an installed package from its meta.yaml
@@ -343,7 +343,8 @@ func (i *Installer) loadInstalledPackage(metaPath string) (*InstalledPackage, er
 func (i *Installer) printUsageReceipt(packageName string, pkg *Package, ctx TemplateContext) {
 	fmt.Printf("\n✅ Package %s installed successfully!\n\n", packageName)
 
-	if pkg.Type == "fx-module" {
+	switch pkg.Type {
+	case "fx-module":
 		fmt.Printf("📦 Import the package:\n")
 		fmt.Printf("   import %s \"%s\"\n\n", ctx.Package, ctx.ImportPath)
 
@@ -360,13 +361,33 @@ func (i *Installer) printUsageReceipt(packageName string, pkg *Package, ctx Temp
 			}
 			fmt.Printf("\n")
 		}
-	} else if pkg.Type == "cli-command" {
+	case "cli-command":
 		fmt.Printf("🚀 Run as CLI command:\n")
 		fmt.Printf("   vandor vpkg exec %s [args]\n\n", packageName)
 
 		fmt.Printf("🔧 Or embed in your application:\n")
 		fmt.Printf("   import %s \"%s/%s\"\n", ctx.Package, ctx.Module, ctx.PackagePath)
 		fmt.Printf("   // Use %s.Command() to get Cobra command\n\n", ctx.Package)
+	case "utility":
+		fmt.Printf("📦 Import the package:\n")
+		fmt.Printf("   import %s \"%s\"\n\n", ctx.Package, ctx.ImportPath)
+
+		fmt.Printf("🚀 Simple usage:\n")
+		fmt.Printf("   // Just call functions directly - no setup required!\n")
+		fmt.Printf("   result, err := %s.Process(ctx, request)\n\n", ctx.Package)
+
+		fmt.Printf("⚙️ Configure globally (optional):\n")
+		fmt.Printf("   func init() {\n")
+		fmt.Printf("       %s.Default.DefaultLimit = 50  // Customize defaults\n", ctx.Package)
+		fmt.Printf("   }\n\n")
+
+		if len(pkg.Dependencies) > 0 {
+			fmt.Printf("📋 Dependencies to add:\n")
+			for _, dep := range pkg.Dependencies {
+				fmt.Printf("   go get %s\n", dep)
+			}
+			fmt.Printf("\n")
+		}
 	}
 
 	fmt.Printf("📖 See README in %s for detailed usage instructions.\n", ctx.PackagePath)

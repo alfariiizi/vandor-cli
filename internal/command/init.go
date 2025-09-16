@@ -22,7 +22,7 @@ func RegisterAllCommands() error {
 		NewSyncSchedulerCommand(),
 		NewSyncEnumCommand(),
 		NewSyncSeedCommand(),
-		NewSyncHandlerCommand(),
+		// Note: handler sync removed - now managed by http-huma vpkg package
 		NewSyncDbModelCommand(),
 
 		// Theme category

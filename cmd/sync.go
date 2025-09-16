@@ -181,21 +181,21 @@ var syncSeedCmd = &cobra.Command{
 	},
 }
 
-var syncHandlerCmd = &cobra.Command{
-	Use:   "handler",
-	Short: "Sync HTTP handler code",
-	Run: func(cmd *cobra.Command, args []string) {
-		registry := command.GetGlobalRegistry()
-		unifiedCmd, exists := registry.Get("sync", "handler")
-		if !exists {
-			er("Sync handler command not found in registry")
-		}
-		ctx := command.NewCommandContext(args)
-		if err := unifiedCmd.Execute(ctx); err != nil {
-			er(fmt.Sprintf("Failed to execute sync handler command: %v", err))
-		}
-	},
-}
+// var syncHandlerCmd = &cobra.Command{
+// 	Use:   "handler",
+// 	Short: "Sync HTTP handler code",
+// 	Run: func(cmd *cobra.Command, args []string) {
+// 		registry := command.GetGlobalRegistry()
+// 		unifiedCmd, exists := registry.Get("sync", "handler")
+// 		if !exists {
+// 			er("Sync handler command not found in registry")
+// 		}
+// 		ctx := command.NewCommandContext(args)
+// 		if err := unifiedCmd.Execute(ctx); err != nil {
+// 			er(fmt.Sprintf("Failed to execute sync handler command: %v", err))
+// 		}
+// 	},
+// }
 
 var syncDbModelCmd = &cobra.Command{
 	Use:   "db-model",
@@ -228,6 +228,6 @@ func init() {
 	syncCmd.AddCommand(syncSchedulerCmd)
 	syncCmd.AddCommand(syncEnumCmd)
 	syncCmd.AddCommand(syncSeedCmd)
-	syncCmd.AddCommand(syncHandlerCmd)
+	// Note: syncHandlerCmd removed - now managed by http-huma vpkg package
 	syncCmd.AddCommand(syncDbModelCmd)
 }
