@@ -1,0 +1,93 @@
+package job
+
+import (
+	"context"
+	"fmt"
+
+	"{{.ModuleName}}/internal/infrastructure/db"
+	"{{.ModuleName}}/internal/pkg/logger"
+)
+
+// {{.Name}}Job defines the interface for {{.Name}} job
+type {{.Name}}Job interface {
+	Execute(ctx context.Context) error
+	GetName() string
+}
+
+// {{.Receiver}}Job implements the {{.Name}}Job interface
+type {{.Receiver}}Job struct {
+	client *db.Client
+}
+
+// New{{.Name}}Job creates a new instance of {{.Name}} job
+func New{{.Name}}Job(client *db.Client) {{.Name}}Job {
+	return &{{.Receiver}}Job{
+		client: client,
+	}
+}
+
+// GetName returns the job name
+func (j *{{.Receiver}}Job) GetName() string {
+	return "{{.NameSnake}}_job"
+}
+
+// Execute executes the {{.Name}} job
+func (j *{{.Receiver}}Job) Execute(ctx context.Context) error {
+	log := logger.Get()
+
+	log.Info().
+		Str("job", j.GetName()).
+		Msg("Starting {{.Name}} job")
+
+	// TODO: Implement your job logic here
+	// Example:
+	// - Process pending items
+	// - Clean up old data
+	// - Generate reports
+	// - Send notifications
+	// - Sync with external services
+
+	if err := j.process(ctx); err != nil {
+		log.Error().
+			Str("job", j.GetName()).
+			Err(err).
+			Msg("{{.Name}} job failed")
+		return fmt.Errorf("{{.Name}} job execution failed: %w", err)
+	}
+
+	log.Info().
+		Str("job", j.GetName()).
+		Msg("{{.Name}} job completed successfully")
+
+	return nil
+}
+
+// process contains the main job logic
+func (j *{{.Receiver}}Job) process(ctx context.Context) error {
+	// TODO: Implement the main job processing logic
+
+	// Example implementation:
+	// 1. Query data that needs processing
+	// 2. Process each item
+	// 3. Update status/cleanup
+	// 4. Log progress
+
+	return nil
+}
+
+// TODO: Add helper methods as needed
+// Example:
+// func (j *{{.Receiver}}Job) validateInput() error {
+//     // Validate job prerequisites
+//     return nil
+// }
+//
+// func (j *{{.Receiver}}Job) cleanup(ctx context.Context) error {
+//     // Cleanup after job execution
+//     return nil
+// }
+//
+// func (j *{{.Receiver}}Job) sendNotification(ctx context.Context, result string) error {
+//     // Send job completion notification
+//     return nil
+// }

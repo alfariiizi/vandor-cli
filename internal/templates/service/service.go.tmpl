@@ -1,0 +1,69 @@
+package {{.Group}}
+
+import (
+	"context"
+
+	"{{.ModuleName}}/internal/infrastructure/db"
+	"{{.ModuleName}}/internal/pkg/logger"
+)
+
+// {{.Name}}Input defines the input for {{.Name}} service
+type {{.Name}}Input struct {
+	// TODO: Define input fields
+}
+
+// {{.Name}}Output defines the output for {{.Name}} service
+type {{.Name}}Output struct {
+	// TODO: Define output fields
+}
+
+// {{.Name}}Service defines the interface for {{.Name}} service
+type {{.Name}}Service interface {
+	Execute(ctx context.Context, input {{.Name}}Input) (*{{.Name}}Output, error)
+	// TODO: Add additional service methods as needed
+}
+
+// {{.Receiver}}Service implements the {{.Name}}Service interface
+type {{.Receiver}}Service struct {
+	client *db.Client
+}
+
+// New{{.Name}}Service creates a new instance of {{.Name}} service
+func New{{.Name}}Service(client *db.Client) {{.Name}}Service {
+	return &{{.Receiver}}Service{
+		client: client,
+	}
+}
+
+// Execute executes the {{.Name}} service
+func (s *{{.Receiver}}Service) Execute(ctx context.Context, input {{.Name}}Input) (*{{.Name}}Output, error) {
+	log := logger.Get()
+
+	log.Info().
+		Str("service", "{{.Group}}.{{.Name}}").
+		Msg("Executing {{.Name}} service")
+
+	// TODO: Implement your service logic here
+
+	result := &{{.Name}}Output{
+		// TODO: Set output fields
+	}
+
+	log.Info().
+		Str("service", "{{.Group}}.{{.Name}}").
+		Msg("{{.Name}} service executed successfully")
+
+	return result, nil
+}
+
+// TODO: Add additional service methods as needed
+// Example:
+// func (s *{{.Receiver}}Service) Validate(input {{.Name}}Input) error {
+//     // Implement validation logic
+//     return nil
+// }
+//
+// func (s *{{.Receiver}}Service) Transform(ctx context.Context, input {{.Name}}Input) (*SomeType, error) {
+//     // Implement transformation logic
+//     return nil, nil
+// }

@@ -1,0 +1,129 @@
+package seed
+
+import (
+	"context"
+	"fmt"
+
+	"{{.ModuleName}}/internal/infrastructure/db"
+	"{{.ModuleName}}/internal/pkg/logger"
+)
+
+// {{.Name}}Seed defines the interface for {{.Name}} seed
+type {{.Name}}Seed interface {
+	Run(ctx context.Context) error
+	GetName() string
+	GetDependencies() []string
+}
+
+// {{.Receiver}}Seed implements the {{.Name}}Seed interface
+type {{.Receiver}}Seed struct {
+	client *db.Client
+}
+
+// New{{.Name}}Seed creates a new instance of {{.Name}} seed
+func New{{.Name}}Seed(client *db.Client) {{.Name}}Seed {
+	return &{{.Receiver}}Seed{
+		client: client,
+	}
+}
+
+// GetName returns the seed name
+func (s *{{.Receiver}}Seed) GetName() string {
+	return "{{.NameSnake}}_seed"
+}
+
+// GetDependencies returns the list of seeds this seed depends on
+func (s *{{.Receiver}}Seed) GetDependencies() []string {
+	// TODO: Return dependencies if any
+	// Example: return []string{"user_seed", "role_seed"}
+	return []string{}
+}
+
+// Run executes the {{.Name}} seed
+func (s *{{.Receiver}}Seed) Run(ctx context.Context) error {
+	log := logger.Get()
+
+	log.Info().
+		Str("seed", s.GetName()).
+		Msg("Starting {{.Name}} seed")
+
+	// TODO: Implement your seed logic here
+	// Example:
+	// - Create default data
+	// - Import test data
+	// - Set up initial configurations
+	// - Create sample records
+
+	if err := s.createSampleData(ctx); err != nil {
+		log.Error().
+			Str("seed", s.GetName()).
+			Err(err).
+			Msg("{{.Name}} seed failed")
+		return fmt.Errorf("{{.Name}} seed execution failed: %w", err)
+	}
+
+	log.Info().
+		Str("seed", s.GetName()).
+		Msg("{{.Name}} seed completed successfully")
+
+	return nil
+}
+
+// createSampleData creates sample data for {{.Name}}
+func (s *{{.Receiver}}Seed) createSampleData(ctx context.Context) error {
+	// TODO: Implement sample data creation
+	// Example:
+
+	// Check if data already exists
+	// count, err := s.client.{{.Name}}.Query().Count(ctx)
+	// if err != nil {
+	//     return fmt.Errorf("failed to check existing data: %w", err)
+	// }
+	//
+	// if count > 0 {
+	//     log.Info().
+	//         Str("seed", s.GetName()).
+	//         Int("existing_count", count).
+	//         Msg("Data already exists, skipping seed")
+	//     return nil
+	// }
+
+	// Create sample records
+	// sampleData := []struct {
+	//     Name        string
+	//     Description string
+	// }{
+	//     {"Sample 1", "First sample record"},
+	//     {"Sample 2", "Second sample record"},
+	//     {"Sample 3", "Third sample record"},
+	// }
+	//
+	// for _, data := range sampleData {
+	//     _, err := s.client.{{.Name}}.Create().
+	//         SetName(data.Name).
+	//         SetDescription(data.Description).
+	//         Save(ctx)
+	//     if err != nil {
+	//         return fmt.Errorf("failed to create sample data: %w", err)
+	//     }
+	// }
+
+	return nil
+}
+
+// TODO: Add helper methods for data management
+// Example:
+// func (s *{{.Receiver}}Seed) clearExistingData(ctx context.Context) error {
+//     // Clear existing data if needed
+//     return nil
+// }
+//
+// func (s *{{.Receiver}}Seed) validateData(ctx context.Context) error {
+//     // Validate seeded data
+//     return nil
+// }
+//
+// func (s *{{.Receiver}}Seed) createDefaultConfiguration(ctx context.Context) error {
+//     // Create default configuration
+//     return nil
+// }

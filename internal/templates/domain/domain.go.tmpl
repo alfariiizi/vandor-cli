@@ -1,0 +1,101 @@
+package domain
+
+import (
+	"context"
+
+	"{{.ModuleName}}/internal/infrastructure/db"
+	"{{.ModuleName}}/internal/pkg/logger"
+)
+
+// {{.Name}}Repository defines the interface for {{.Name}} data operations
+type {{.Name}}Repository interface {
+	// TODO: Define repository methods
+	// Example:
+	// Create(ctx context.Context, data *{{.Name}}Data) (*{{.Name}}Data, error)
+	// GetByID(ctx context.Context, id int) (*{{.Name}}Data, error)
+	// Update(ctx context.Context, id int, data *{{.Name}}Data) (*{{.Name}}Data, error)
+	// Delete(ctx context.Context, id int) error
+	// List(ctx context.Context, filter {{.Name}}Filter) ([]*{{.Name}}Data, error)
+}
+
+// {{.Name}}Data represents the domain entity for {{.Name}}
+type {{.Name}}Data struct {
+	// TODO: Define domain entity fields
+	// Example:
+	// ID        int       `json:"id"`
+	// Name      string    `json:"name"`
+	// CreatedAt time.Time `json:"created_at"`
+	// UpdatedAt time.Time `json:"updated_at"`
+}
+
+// {{.Name}}Filter represents filter criteria for {{.Name}} queries
+type {{.Name}}Filter struct {
+	// TODO: Define filter fields
+	// Example:
+	// Name   *string `json:"name,omitempty"`
+	// Limit  *int    `json:"limit,omitempty"`
+	// Offset *int    `json:"offset,omitempty"`
+}
+
+// {{.Name}}Service defines the domain service interface for {{.Name}}
+type {{.Name}}Service interface {
+	// TODO: Define domain service methods
+	// Example:
+	// ValidateBusinessRules(ctx context.Context, data *{{.Name}}Data) error
+	// CalculateDerivedFields(ctx context.Context, data *{{.Name}}Data) error
+	// CheckConstraints(ctx context.Context, data *{{.Name}}Data) error
+}
+
+// {{.Receiver}}Service implements the {{.Name}}Service interface
+type {{.Receiver}}Service struct {
+	client *db.Client
+	repo   {{.Name}}Repository
+}
+
+// New{{.Name}}Service creates a new instance of {{.Name}}Service
+func New{{.Name}}Service(client *db.Client, repo {{.Name}}Repository) {{.Name}}Service {
+	return &{{.Receiver}}Service{
+		client: client,
+		repo:   repo,
+	}
+}
+
+// ValidateBusinessRules validates domain-specific business rules for {{.Name}}
+func (s *{{.Receiver}}Service) ValidateBusinessRules(ctx context.Context, data *{{.Name}}Data) error {
+	log := logger.Get()
+
+	// TODO: Implement business rule validation
+	// Example:
+	// if data.Name == "" {
+	//     log.Error().Msg("{{.Name}} name cannot be empty")
+	//     return fmt.Errorf("name is required")
+	// }
+
+	log.Debug().
+		Str("domain", "{{.Name}}").
+		Msg("Business rules validated for {{.Name}}")
+
+	return nil
+}
+
+// TODO: Add more domain service methods as needed
+// Example:
+// func (s *{{.Receiver}}Service) CalculateDerivedFields(ctx context.Context, data *{{.Name}}Data) error {
+//     // Implement calculation logic
+//     return nil
+// }
+
+// {{.Name}}DomainEvent represents domain events for {{.Name}}
+type {{.Name}}DomainEvent struct {
+	Type      string      `json:"type"`
+	Data      *{{.Name}}Data `json:"data"`
+	Timestamp int64       `json:"timestamp"`
+	UserID    *string     `json:"user_id,omitempty"`
+}
+
+// Domain event types for {{.Name}}
+const (
+	{{.Name}}Created = "{{.NameSnake}}_created"
+	{{.Name}}Updated = "{{.NameSnake}}_updated"
+	{{.Name}}Deleted = "{{.NameSnake}}_deleted"
+)

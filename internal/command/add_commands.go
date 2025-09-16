@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/alfariiizi/vandor-cli/internal/generators"
+	"github.com/alfariiizi/vandor-cli/internal/templates"
 )
 
 // AddDomainCommand implements the add domain functionality
@@ -21,8 +22,14 @@ func (c *AddDomainCommand) Execute(ctx *CommandContext) error {
 	name := ctx.Args[0]
 	_, _ = fmt.Fprintf(ctx.Stdout, "Creating new domain: %s\n", name)
 
-	// Create new domain using Jennifer generator
-	if err := generators.GenerateDomain(name); err != nil {
+	// Create new domain using embedded template system
+	templateManager := templates.NewTemplateManager()
+	config := templates.TemplateConfig{
+		ComponentType: "domain",
+		Name:          name,
+	}
+
+	if err := templateManager.Generate(config); err != nil {
 		return fmt.Errorf("failed to create domain: %w", err)
 	}
 
@@ -71,8 +78,14 @@ func (c *AddUsecaseCommand) Execute(ctx *CommandContext) error {
 	name := ctx.Args[0]
 	_, _ = fmt.Fprintf(ctx.Stdout, "Creating new usecase: %s\n", name)
 
-	// Create new usecase using Jennifer generator
-	if err := generators.GenerateUsecase(name); err != nil {
+	// Create new usecase using embedded template system
+	templateManager := templates.NewTemplateManager()
+	config := templates.TemplateConfig{
+		ComponentType: "usecase",
+		Name:          name,
+	}
+
+	if err := templateManager.Generate(config); err != nil {
 		return fmt.Errorf("failed to create usecase: %w", err)
 	}
 
@@ -122,8 +135,15 @@ func (c *AddServiceCommand) Execute(ctx *CommandContext) error {
 	name := ctx.Args[1]
 	_, _ = fmt.Fprintf(ctx.Stdout, "Creating new service: %s in group %s\n", name, group)
 
-	// Create new service using Jennifer generator (only pass the name as that's what the generator expects)
-	if err := generators.GenerateService(name); err != nil {
+	// Create new service using embedded template system
+	templateManager := templates.NewTemplateManager()
+	config := templates.TemplateConfig{
+		ComponentType: "service",
+		Name:          name,
+		Group:         group,
+	}
+
+	if err := templateManager.Generate(config); err != nil {
 		return fmt.Errorf("failed to create service: %w", err)
 	}
 

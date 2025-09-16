@@ -5,7 +5,15 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/alfariiizi/vandor-cli/internal/generators"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/domain"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/entgo"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/enum"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/handler"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/job"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/scheduler"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/seed"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/service"
+	"github.com/alfariiizi/vandor-cli/internal/regenerate/usecase"
 )
 
 // SyncAllCommand implements the sync all functionality
@@ -18,35 +26,32 @@ func NewSyncAllCommand() *SyncAllCommand {
 func (c *SyncAllCommand) Execute(ctx *CommandContext) error {
 	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing all code...\n")
 
-	// Use Jennifer-based generators
-	generatorFuncs := []func() error{
-		generators.GenerateDomainRegistry,
-		generators.GenerateUsecaseRegistry,
-		generators.GenerateServiceRegistry,
-		generators.GenerateHandlerRegistry,
-		generators.GenerateJobRegistry,
+	// Run all generation functions in the order specified by taskfile gen:all
+	generators := []struct {
+		name string
+		fn   func() error
+	}{
+		{"domain", domain.RegenerateDomain},
+		{"usecase", usecase.RegenerateUsecase},
+		{"service", service.RegenerateService},
+		{"handler", handler.RegenerateHandler},
+		{"job", job.RegenerateJob},
+		{"scheduler", scheduler.RegenerateScheduler},
+		{"seed", seed.RegenerateSeed},
+		{"entgo", entgo.RegenerateEntgo},
 	}
 
-	// Additional commands that still use old approach
-	commands := [][]string{
-		{"go", "run", "./internal/cmd/scheduler/cmd-regenerate-scheduler/main.go"},
-		{"go", "run", "./internal/cmd/seed/cmd-generate/main.go"},
-		{"go", "run", "./internal/cmd/entgo/main.go"},
-		{"goimports", "-w", "."},
-	}
-
-	// Run Jennifer-based generators first
-	for _, gen := range generatorFuncs {
-		if err := gen(); err != nil {
-			return fmt.Errorf("failed to run generator: %w", err)
+	// Run all generators in sequence
+	for _, gen := range generators {
+		_, _ = fmt.Fprintf(ctx.Stdout, "Regenerating %s...\n", gen.name)
+		if err := gen.fn(); err != nil {
+			return fmt.Errorf("failed to regenerate %s: %w", gen.name, err)
 		}
 	}
 
-	// Run remaining commands
-	for _, cmdArgs := range commands {
-		if err := runCommand(cmdArgs[0], cmdArgs[1:]...); err != nil {
-			return fmt.Errorf("failed to run %s: %w", cmdArgs[0], err)
-		}
+	// Run goimports to clean up
+	if err := runCommand("goimports", "-w", "."); err != nil {
+		return fmt.Errorf("failed to run goimports: %w", err)
 	}
 
 	_, _ = fmt.Fprintf(ctx.Stdout, "✅ All code synced successfully!\n")
@@ -77,17 +82,21 @@ func NewSyncCoreCommand() *SyncCoreCommand {
 func (c *SyncCoreCommand) Execute(ctx *CommandContext) error {
 	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing core code...\n")
 
-	// Use Jennifer-based generators
-	generatorFuncs := []func() error{
-		generators.GenerateUsecaseRegistry,
-		generators.GenerateServiceRegistry,
-		generators.GenerateDomainRegistry,
+	// Run core generation functions in the order specified by taskfile gen:core
+	generators := []struct {
+		name string
+		fn   func() error
+	}{
+		{"usecase", usecase.RegenerateUsecase},
+		{"service", service.RegenerateService},
+		{"domain", domain.RegenerateDomain},
 	}
 
-	// Run Jennifer-based generators
-	for _, gen := range generatorFuncs {
-		if err := gen(); err != nil {
-			return fmt.Errorf("failed to run generator: %w", err)
+	// Run all generators in sequence
+	for _, gen := range generators {
+		_, _ = fmt.Fprintf(ctx.Stdout, "Regenerating %s...\n", gen.name)
+		if err := gen.fn(); err != nil {
+			return fmt.Errorf("failed to regenerate %s: %w", gen.name, err)
 		}
 	}
 
@@ -118,10 +127,9 @@ func NewSyncDomainCommand() *SyncDomainCommand {
 
 func (c *SyncDomainCommand) Execute(ctx *CommandContext) error {
 	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing domain code...\n")
-	if err := generators.GenerateDomainRegistry(); err != nil {
+	if err := domain.RegenerateDomain(); err != nil {
 		return fmt.Errorf("failed to generate domain code: %w", err)
 	}
-	_, _ = fmt.Fprintf(ctx.Stdout, "✅ Domain code synced successfully!\n")
 	return nil
 }
 
@@ -148,10 +156,9 @@ func NewSyncUsecaseCommand() *SyncUsecaseCommand {
 
 func (c *SyncUsecaseCommand) Execute(ctx *CommandContext) error {
 	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing usecases...\n")
-	if err := generators.GenerateUsecaseRegistry(); err != nil {
+	if err := usecase.RegenerateUsecase(); err != nil {
 		return fmt.Errorf("failed to generate usecase code: %w", err)
 	}
-	_, _ = fmt.Fprintf(ctx.Stdout, "✅ Usecase code synced successfully!\n")
 	return nil
 }
 
@@ -178,10 +185,9 @@ func NewSyncServiceCommand() *SyncServiceCommand {
 
 func (c *SyncServiceCommand) Execute(ctx *CommandContext) error {
 	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing services...\n")
-	if err := generators.GenerateServiceRegistry(); err != nil {
+	if err := service.RegenerateService(); err != nil {
 		return fmt.Errorf("failed to generate service code: %w", err)
 	}
-	_, _ = fmt.Fprintf(ctx.Stdout, "✅ Service code synced successfully!\n")
 	return nil
 }
 
@@ -199,6 +205,151 @@ func (c *SyncServiceCommand) Validate(args []string) error {
 	return nil // No arguments required
 }
 
+// SyncJobCommand implements the sync job functionality
+type SyncJobCommand struct{}
+
+func NewSyncJobCommand() *SyncJobCommand {
+	return &SyncJobCommand{}
+}
+
+func (c *SyncJobCommand) Execute(ctx *CommandContext) error {
+	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing jobs...\n")
+	if err := job.RegenerateJob(); err != nil {
+		return fmt.Errorf("failed to generate job code: %w", err)
+	}
+	return nil
+}
+
+func (c *SyncJobCommand) GetMetadata() CommandMetadata {
+	return CommandMetadata{
+		Name:        "job",
+		Category:    "sync",
+		Description: "Sync job code",
+		Usage:       "vandor sync job",
+		Args:        []string{},
+	}
+}
+
+func (c *SyncJobCommand) Validate(args []string) error {
+	return nil // No arguments required
+}
+
+// SyncSchedulerCommand implements the sync scheduler functionality
+type SyncSchedulerCommand struct{}
+
+func NewSyncSchedulerCommand() *SyncSchedulerCommand {
+	return &SyncSchedulerCommand{}
+}
+
+func (c *SyncSchedulerCommand) Execute(ctx *CommandContext) error {
+	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing schedulers...\n")
+	if err := scheduler.RegenerateScheduler(); err != nil {
+		return fmt.Errorf("failed to generate scheduler code: %w", err)
+	}
+	return nil
+}
+
+func (c *SyncSchedulerCommand) GetMetadata() CommandMetadata {
+	return CommandMetadata{
+		Name:        "scheduler",
+		Category:    "sync",
+		Description: "Sync scheduler code",
+		Usage:       "vandor sync scheduler",
+		Args:        []string{},
+	}
+}
+
+func (c *SyncSchedulerCommand) Validate(args []string) error {
+	return nil // No arguments required
+}
+
+// SyncEnumCommand implements the sync enum functionality
+type SyncEnumCommand struct{}
+
+func NewSyncEnumCommand() *SyncEnumCommand {
+	return &SyncEnumCommand{}
+}
+
+func (c *SyncEnumCommand) Execute(ctx *CommandContext) error {
+	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing enums...\n")
+	if err := enum.RegenerateEnum(); err != nil {
+		return fmt.Errorf("failed to generate enum code: %w", err)
+	}
+	return nil
+}
+
+func (c *SyncEnumCommand) GetMetadata() CommandMetadata {
+	return CommandMetadata{
+		Name:        "enum",
+		Category:    "sync",
+		Description: "Sync enum code",
+		Usage:       "vandor sync enum",
+		Args:        []string{},
+	}
+}
+
+func (c *SyncEnumCommand) Validate(args []string) error {
+	return nil // No arguments required
+}
+
+// SyncSeedCommand implements the sync seed functionality
+type SyncSeedCommand struct{}
+
+func NewSyncSeedCommand() *SyncSeedCommand {
+	return &SyncSeedCommand{}
+}
+
+func (c *SyncSeedCommand) Execute(ctx *CommandContext) error {
+	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing seeds...\n")
+	if err := seed.RegenerateSeed(); err != nil {
+		return fmt.Errorf("failed to generate seed code: %w", err)
+	}
+	return nil
+}
+
+func (c *SyncSeedCommand) GetMetadata() CommandMetadata {
+	return CommandMetadata{
+		Name:        "seed",
+		Category:    "sync",
+		Description: "Sync seed code",
+		Usage:       "vandor sync seed",
+		Args:        []string{},
+	}
+}
+
+func (c *SyncSeedCommand) Validate(args []string) error {
+	return nil // No arguments required
+}
+
+// SyncHandlerCommand implements the sync handler functionality
+type SyncHandlerCommand struct{}
+
+func NewSyncHandlerCommand() *SyncHandlerCommand {
+	return &SyncHandlerCommand{}
+}
+
+func (c *SyncHandlerCommand) Execute(ctx *CommandContext) error {
+	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing HTTP handlers...\n")
+	if err := handler.RegenerateHandler(); err != nil {
+		return fmt.Errorf("failed to generate handler code: %w", err)
+	}
+	return nil
+}
+
+func (c *SyncHandlerCommand) GetMetadata() CommandMetadata {
+	return CommandMetadata{
+		Name:        "handler",
+		Category:    "sync",
+		Description: "Sync HTTP handler code",
+		Usage:       "vandor sync handler",
+		Args:        []string{},
+	}
+}
+
+func (c *SyncHandlerCommand) Validate(args []string) error {
+	return nil // No arguments required
+}
+
 // SyncDbModelCommand implements the sync db-model functionality
 type SyncDbModelCommand struct{}
 
@@ -208,18 +359,9 @@ func NewSyncDbModelCommand() *SyncDbModelCommand {
 
 func (c *SyncDbModelCommand) Execute(ctx *CommandContext) error {
 	_, _ = fmt.Fprintf(ctx.Stdout, "Syncing DB Model...\n")
-
-	// Generate ent code
-	if err := runCommand("go", "run", "./internal/cmd/entgo/main.go"); err != nil {
+	if err := entgo.RegenerateEntgo(); err != nil {
 		return fmt.Errorf("failed to generate DB model: %w", err)
 	}
-
-	// Run goimports on the generated code
-	if err := runCommand("goimports", "-w", "./internal/infrastructure/db/rest/."); err != nil {
-		return fmt.Errorf("failed to run goimports: %w", err)
-	}
-
-	_, _ = fmt.Fprintf(ctx.Stdout, "✅ DB Model synced successfully!\n")
 	return nil
 }
 

@@ -1,0 +1,139 @@
+package enum
+
+import (
+	"database/sql/driver"
+	"fmt"
+)
+
+// {{.Name}} represents the {{.Name}} enumeration
+type {{.Name}} string
+
+// {{.Name}} enum values
+const (
+	// TODO: Define your enum values
+	// Example:
+	{{.Name}}Unknown {{.Name}} = "unknown"
+	{{.Name}}Active  {{.Name}} = "active"
+	{{.Name}}Inactive {{.Name}} = "inactive"
+	// Add more values as needed
+)
+
+// All{{.Name}}Values returns all possible values for {{.Name}}
+func All{{.Name}}Values() []{{.Name}} {
+	return []{{.Name}}{
+		// TODO: Update with your actual enum values
+		{{.Name}}Unknown,
+		{{.Name}}Active,
+		{{.Name}}Inactive,
+		// Add all values here
+	}
+}
+
+// Valid{{.Name}}Values returns a map of valid {{.Name}} values for validation
+func Valid{{.Name}}Values() map[{{.Name}}]bool {
+	validValues := make(map[{{.Name}}]bool)
+	for _, value := range All{{.Name}}Values() {
+		validValues[value] = true
+	}
+	return validValues
+}
+
+// String returns the string representation of {{.Name}}
+func (e {{.Name}}) String() string {
+	return string(e)
+}
+
+// IsValid checks if the {{.Name}} value is valid
+func (e {{.Name}}) IsValid() bool {
+	validValues := Valid{{.Name}}Values()
+	return validValues[e]
+}
+
+// MarshalText implements the encoding.TextMarshaler interface
+func (e {{.Name}}) MarshalText() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid {{.Name}} value: %s", e)
+	}
+	return []byte(e.String()), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface
+func (e *{{.Name}}) UnmarshalText(text []byte) error {
+	value := {{.Name}}(text)
+	if !value.IsValid() {
+		return fmt.Errorf("invalid {{.Name}} value: %s", text)
+	}
+	*e = value
+	return nil
+}
+
+// Value implements the driver.Valuer interface for database storage
+func (e {{.Name}}) Value() (driver.Value, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid {{.Name}} value: %s", e)
+	}
+	return string(e), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval
+func (e *{{.Name}}) Scan(value interface{}) error {
+	if value == nil {
+		*e = {{.Name}}Unknown
+		return nil
+	}
+
+	switch v := value.(type) {
+	case string:
+		*e = {{.Name}}(v)
+	case []byte:
+		*e = {{.Name}}(v)
+	default:
+		return fmt.Errorf("cannot scan %T into {{.Name}}", value)
+	}
+
+	if !e.IsValid() {
+		return fmt.Errorf("invalid {{.Name}} value: %s", *e)
+	}
+
+	return nil
+}
+
+// {{.Name}}FromString creates a {{.Name}} from string with validation
+func {{.Name}}FromString(s string) ({{.Name}}, error) {
+	value := {{.Name}}(s)
+	if !value.IsValid() {
+		return {{.Name}}Unknown, fmt.Errorf("invalid {{.Name}} value: %s", s)
+	}
+	return value, nil
+}
+
+// Must{{.Name}}FromString creates a {{.Name}} from string, panics if invalid
+func Must{{.Name}}FromString(s string) {{.Name}} {
+	value, err := {{.Name}}FromString(s)
+	if err != nil {
+		panic(err)
+	}
+	return value
+}
+
+// TODO: Add custom methods for your enum
+// Example:
+// func (e {{.Name}}) IsActive() bool {
+//     return e == {{.Name}}Active
+// }
+//
+// func (e {{.Name}}) CanTransitionTo(target {{.Name}}) bool {
+//     // Define state transition rules
+//     return false
+// }
+//
+// func (e {{.Name}}) Description() string {
+//     switch e {
+//     case {{.Name}}Active:
+//         return "Active state"
+//     case {{.Name}}Inactive:
+//         return "Inactive state"
+//     default:
+//         return "Unknown state"
+//     }
+// }

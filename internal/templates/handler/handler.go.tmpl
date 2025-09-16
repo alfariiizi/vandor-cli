@@ -1,0 +1,131 @@
+package {{.Group}}
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+
+	"{{.ModuleName}}/internal/core/usecase"
+	"{{.ModuleName}}/internal/pkg/logger"
+	"{{.ModuleName}}/internal/pkg/response"
+)
+
+// {{.Name}}Request defines the request structure for {{.Name}} handler
+type {{.Name}}Request struct {
+	// Path parameters
+	// ID int `path:"id" example:"1" doc:"{{.Name}} ID"`
+
+	// Query parameters
+	// Limit  *int    `query:"limit" example:"10" doc:"Maximum number of items to return"`
+	// Offset *int    `query:"offset" example:"0" doc:"Number of items to skip"`
+
+	// Body (for POST/PUT/PATCH requests)
+	Body struct {
+		// TODO: Define request body fields
+		// Name string `json:"name" example:"Sample Name" doc:"The name field"`
+	} `json:"body,omitempty"`
+}
+
+// {{.Name}}Response defines the response structure for {{.Name}} handler
+type {{.Name}}Response struct {
+	Body struct {
+		// TODO: Define response body fields
+		// ID      int    `json:"id" example:"1" doc:"{{.Name}} ID"`
+		// Name    string `json:"name" example:"Sample Name" doc:"The name field"`
+		// Status  string `json:"status" example:"success" doc:"Operation status"`
+	} `json:"body"`
+}
+
+// {{.Name}}Handler defines the interface for {{.Name}} handler
+type {{.Name}}Handler interface {
+	Handle(ctx context.Context, req *{{.Name}}Request) (*{{.Name}}Response, error)
+}
+
+// {{.Receiver}}Handler implements the {{.Name}}Handler interface
+type {{.Receiver}}Handler struct {
+	// TODO: Add required usecases/services
+	// usecases *usecase.Usecases
+}
+
+// New{{.Name}}Handler creates a new instance of {{.Name}} handler
+func New{{.Name}}Handler(
+	// TODO: Add required dependencies
+	// usecases *usecase.Usecases,
+) {{.Name}}Handler {
+	return &{{.Receiver}}Handler{
+		// TODO: Initialize dependencies
+		// usecases: usecases,
+	}
+}
+
+// Handle handles the {{.Name}} HTTP request
+func (h *{{.Receiver}}Handler) Handle(ctx context.Context, req *{{.Name}}Request) (*{{.Name}}Response, error) {
+	log := logger.Get()
+
+	log.Info().
+		Str("handler", "{{.Group}}.{{.Name}}").
+		Str("method", "{{.Method}}").
+		Msg("Processing {{.Name}} request")
+
+	// TODO: Implement your handler logic here
+	// Example:
+	// 1. Validate request
+	// 2. Convert request to usecase input
+	// 3. Execute usecase
+	// 4. Convert usecase output to response
+
+	// Example usecase execution:
+	// input := usecase.SomeUsecaseInput{
+	//     // Map from request to usecase input
+	// }
+	//
+	// output, err := h.usecases.SomeUsecase.Execute(ctx, input)
+	// if err != nil {
+	//     log.Error().
+	//         Str("handler", "{{.Group}}.{{.Name}}").
+	//         Err(err).
+	//         Msg("Usecase execution failed")
+	//     return nil, response.InternalServerError("Failed to process request")
+	// }
+
+	// TODO: Build response from usecase output
+	resp := &{{.Name}}Response{
+		Body: struct {
+			// TODO: Map from usecase output to response
+		}{
+			// TODO: Set response fields
+		},
+	}
+
+	log.Info().
+		Str("handler", "{{.Group}}.{{.Name}}").
+		Str("method", "{{.Method}}").
+		Msg("{{.Name}} request processed successfully")
+
+	return resp, nil
+}
+
+// Register{{.Name}}Handler registers the {{.Name}} handler with the API
+func Register{{.Name}}Handler(api huma.API, handler {{.Name}}Handler) {
+	huma.Register(api, huma.Operation{
+		OperationID:   "{{.Group}}.{{.Name}}",
+		Summary:       "{{.Name}} endpoint",
+		Description:   "{{.Name}} endpoint for {{.Group}} group",
+		Method:        "{{.Method}}",
+		Path:          "/api/v1/{{.Group}}/{{.PathName}}", // TODO: Adjust path as needed
+		Tags:          []string{"{{.Group}}"},
+		Responses: map[string]*huma.Response{
+			"200": {
+				Description: "Success",
+				Content: map[string]*huma.MediaType{
+					"application/json": {
+						Schema: huma.SchemaFromType(huma.Registry{}, reflect.TypeOf({{.Name}}Response{})),
+					},
+				},
+			},
+			"400": {Description: "Bad Request"},
+			"500": {Description: "Internal Server Error"},
+		},
+	}, handler.Handle)
+}

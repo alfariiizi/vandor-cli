@@ -18,6 +18,11 @@ func RegisterAllCommands() error {
 		NewSyncDomainCommand(),
 		NewSyncUsecaseCommand(),
 		NewSyncServiceCommand(),
+		NewSyncJobCommand(),
+		NewSyncSchedulerCommand(),
+		NewSyncEnumCommand(),
+		NewSyncSeedCommand(),
+		NewSyncHandlerCommand(),
 		NewSyncDbModelCommand(),
 
 		// Theme category

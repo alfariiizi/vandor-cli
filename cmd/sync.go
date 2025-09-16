@@ -121,8 +121,15 @@ var syncJobCmd = &cobra.Command{
 	Use:   "job",
 	Short: "Sync job code",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Syncing jobs...")
-		fmt.Println("✅ Job code synced successfully!")
+		registry := command.GetGlobalRegistry()
+		unifiedCmd, exists := registry.Get("sync", "job")
+		if !exists {
+			er("Sync job command not found in registry")
+		}
+		ctx := command.NewCommandContext(args)
+		if err := unifiedCmd.Execute(ctx); err != nil {
+			er(fmt.Sprintf("Failed to execute sync job command: %v", err))
+		}
 	},
 }
 
@@ -130,8 +137,15 @@ var syncSchedulerCmd = &cobra.Command{
 	Use:   "scheduler",
 	Short: "Sync scheduler code",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Syncing schedulers...")
-		fmt.Println("✅ Scheduler code synced successfully!")
+		registry := command.GetGlobalRegistry()
+		unifiedCmd, exists := registry.Get("sync", "scheduler")
+		if !exists {
+			er("Sync scheduler command not found in registry")
+		}
+		ctx := command.NewCommandContext(args)
+		if err := unifiedCmd.Execute(ctx); err != nil {
+			er(fmt.Sprintf("Failed to execute sync scheduler command: %v", err))
+		}
 	},
 }
 
@@ -139,8 +153,15 @@ var syncEnumCmd = &cobra.Command{
 	Use:   "enum",
 	Short: "Sync enum code",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Syncing enums...")
-		fmt.Println("✅ Enum code synced successfully!")
+		registry := command.GetGlobalRegistry()
+		unifiedCmd, exists := registry.Get("sync", "enum")
+		if !exists {
+			er("Sync enum command not found in registry")
+		}
+		ctx := command.NewCommandContext(args)
+		if err := unifiedCmd.Execute(ctx); err != nil {
+			er(fmt.Sprintf("Failed to execute sync enum command: %v", err))
+		}
 	},
 }
 
@@ -148,8 +169,15 @@ var syncSeedCmd = &cobra.Command{
 	Use:   "seed",
 	Short: "Sync seed code",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Syncing seeds...")
-		fmt.Println("✅ Seed code synced successfully!")
+		registry := command.GetGlobalRegistry()
+		unifiedCmd, exists := registry.Get("sync", "seed")
+		if !exists {
+			er("Sync seed command not found in registry")
+		}
+		ctx := command.NewCommandContext(args)
+		if err := unifiedCmd.Execute(ctx); err != nil {
+			er(fmt.Sprintf("Failed to execute sync seed command: %v", err))
+		}
 	},
 }
 
@@ -157,8 +185,15 @@ var syncHandlerCmd = &cobra.Command{
 	Use:   "handler",
 	Short: "Sync HTTP handler code",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Syncing HTTP handlers...")
-		fmt.Println("✅ Handler code synced successfully!")
+		registry := command.GetGlobalRegistry()
+		unifiedCmd, exists := registry.Get("sync", "handler")
+		if !exists {
+			er("Sync handler command not found in registry")
+		}
+		ctx := command.NewCommandContext(args)
+		if err := unifiedCmd.Execute(ctx); err != nil {
+			er(fmt.Sprintf("Failed to execute sync handler command: %v", err))
+		}
 	},
 }
 

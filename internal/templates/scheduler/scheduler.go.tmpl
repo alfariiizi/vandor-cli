@@ -1,0 +1,121 @@
+package scheduler
+
+import (
+	"context"
+	"time"
+
+	"github.com/go-co-op/gocron"
+
+	"{{.ModuleName}}/internal/core/job"
+	"{{.ModuleName}}/internal/pkg/logger"
+)
+
+// {{.Name}}Scheduler defines the interface for {{.Name}} scheduler
+type {{.Name}}Scheduler interface {
+	Start(ctx context.Context) error
+	Stop() error
+	GetName() string
+}
+
+// {{.Receiver}}Scheduler implements the {{.Name}}Scheduler interface
+type {{.Receiver}}Scheduler struct {
+	scheduler *gocron.Scheduler
+	jobs      *job.Jobs
+}
+
+// New{{.Name}}Scheduler creates a new instance of {{.Name}} scheduler
+func New{{.Name}}Scheduler(jobs *job.Jobs) {{.Name}}Scheduler {
+	s := gocron.NewScheduler(time.UTC)
+	s.SingletonModeAll()
+
+	return &{{.Receiver}}Scheduler{
+		scheduler: s,
+		jobs:      jobs,
+	}
+}
+
+// GetName returns the scheduler name
+func (s *{{.Receiver}}Scheduler) GetName() string {
+	return "{{.NameSnake}}_scheduler"
+}
+
+// Start starts the {{.Name}} scheduler
+func (s *{{.Receiver}}Scheduler) Start(ctx context.Context) error {
+	log := logger.Get()
+
+	log.Info().
+		Str("scheduler", s.GetName()).
+		Msg("Starting {{.Name}} scheduler")
+
+	// TODO: Configure your scheduled jobs here
+	// Example:
+
+	// Daily job at 2 AM
+	// _, err := s.scheduler.Every(1).Day().At("02:00").Do(func() {
+	//     if err := s.jobs.SomeJob.Execute(ctx); err != nil {
+	//         log.Error().
+	//             Str("scheduler", s.GetName()).
+	//             Err(err).
+	//             Msg("Daily job failed")
+	//     }
+	// })
+	// if err != nil {
+	//     return fmt.Errorf("failed to schedule daily job: %w", err)
+	// }
+
+	// Hourly job
+	// _, err = s.scheduler.Every(1).Hour().Do(func() {
+	//     if err := s.jobs.AnotherJob.Execute(ctx); err != nil {
+	//         log.Error().
+	//             Str("scheduler", s.GetName()).
+	//             Err(err).
+	//             Msg("Hourly job failed")
+	//     }
+	// })
+	// if err != nil {
+	//     return fmt.Errorf("failed to schedule hourly job: %w", err)
+	// }
+
+	// Start the scheduler
+	s.scheduler.StartAsync()
+
+	log.Info().
+		Str("scheduler", s.GetName()).
+		Msg("{{.Name}} scheduler started successfully")
+
+	return nil
+}
+
+// Stop stops the {{.Name}} scheduler
+func (s *{{.Receiver}}Scheduler) Stop() error {
+	log := logger.Get()
+
+	log.Info().
+		Str("scheduler", s.GetName()).
+		Msg("Stopping {{.Name}} scheduler")
+
+	s.scheduler.Stop()
+
+	log.Info().
+		Str("scheduler", s.GetName()).
+		Msg("{{.Name}} scheduler stopped")
+
+	return nil
+}
+
+// TODO: Add helper methods for job management
+// Example:
+// func (s *{{.Receiver}}Scheduler) AddJob(job func(), schedule string) error {
+//     // Add job dynamically
+//     return nil
+// }
+//
+// func (s *{{.Receiver}}Scheduler) RemoveJob(jobID string) error {
+//     // Remove job by ID
+//     return nil
+// }
+//
+// func (s *{{.Receiver}}Scheduler) GetJobs() []gocron.Job {
+//     // Get all scheduled jobs
+//     return s.scheduler.Jobs()
+// }
